@@ -10,7 +10,7 @@ from app.core.config import get_settings
 from app.core.text_guard import find_unsafe
 from app.schemas import AgentResult, AIExplanation, FarmPlan, GeminiNarration
 from google import genai
-from google.genai import types
+from google.genai import errors, types
 from pydantic import ValidationError
 
 logger = logging.getLogger("kisanos.gemini_explainer")
@@ -136,18 +136,37 @@ async def explain_farm_plan(
             separators=(",", ":"),
         )
 
+        request_config = types.GenerateContentConfig(
+            system_instruction=SYSTEM_INSTRUCTION,
+            response_mime_type="application/json",
+            # google-genai 1.75.0 serializes response_schema's
+            # additionalProperties as snake_case ("additional_properties"),
+            # which the API rejects with 400 "Unknown name
+            # additional_properties". The raw JSON schema is passed through
+            # unmodified, so build it from the strict narration model instead.
+            response_json_schema=GeminiNarration.model_json_schema(),
+            temperature=0.2,
+            max_output_tokens=900,
+        )
+
         async with asyncio.timeout(settings.gemini_timeout_seconds):
-            response = await async_client.models.generate_content(
-                model=settings.gemini_model,
-                contents=request_text,
-                config=types.GenerateContentConfig(
-                    system_instruction=SYSTEM_INSTRUCTION,
-                    response_mime_type="application/json",
-                    response_schema=GeminiNarration,
-                    temperature=0.2,
-                    max_output_tokens=900,
-                ),
-            )
+            response = None
+            for attempt in range(2):
+                try:
+                    response = await async_client.models.generate_content(
+                        model=settings.gemini_model,
+                        contents=request_text,
+                        config=request_config,
+                    )
+                    break
+                except errors.ServerError as exc:
+                    if attempt or getattr(exc, "code", None) != 503:
+                        raise
+                    # One retry for a transient provider demand spike.
+                    logger.warning(
+                        "Gemini narration hit a transient 503; retrying once"
+                    )
+                    await asyncio.sleep(1.0)
 
         if not response.text:
             return _unavailable(locale, "invalid_output")

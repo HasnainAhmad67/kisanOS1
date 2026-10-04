@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     gemini_enabled: bool = False
     gemini_api_key: SecretStr | None = None
     gemini_model: str = "gemini-3.8-flash"
-    gemini_timeout_seconds: float = Field(default=10.0, ge=1, le=30)
+    gemini_timeout_seconds: float = Field(default=20.0, ge=1, le=30)
 
     @property
     def origins(self) -> list[str]:
