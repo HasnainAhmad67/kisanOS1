@@ -12,35 +12,34 @@ import {
 } from "../components/FormField";
 import { useAssessment } from "../hooks/useAssessment";
 import { useConfig } from "../hooks/useConfig";
-import { useLocale } from "../hooks/useLocale";
+import { translate, useI18n } from "../i18n";
 import type { AssessmentCreatePayload, IrrigationHistory } from "../types/backend";
 
 /** Literal expected by backend config.py (`consent_version` default). */
 const CONSENT_VERSION = "2026-10-03-gemini-v1";
 const TIMEZONE = "Asia/Karachi";
 
-const GROWTH_STAGES = [
-  { value: "emergence", label: "Emergence" },
-  { value: "cri", label: "Crown root initiation (CRI)" },
-  { value: "tillering", label: "Tillering" },
-  { value: "jointing", label: "Jointing" },
-  { value: "booting", label: "Booting" },
-  { value: "heading", label: "Heading" },
-  { value: "flowering", label: "Flowering" },
-  { value: "milk", label: "Milk" },
-  { value: "dough", label: "Dough" },
-  { value: "maturity", label: "Maturity" },
-  { value: "not_sure", label: "Not sure" },
-];
+const STAGE_ORDER = [
+  "emergence",
+  "cri",
+  "tillering",
+  "jointing",
+  "booting",
+  "heading",
+  "flowering",
+  "milk",
+  "dough",
+  "maturity",
+] as const;
 
 const SYMPTOM_CHIPS = [
-  { value: "yellowing", label: "Yellowing" },
-  { value: "spots", label: "Spots" },
-  { value: "wilting", label: "Wilting" },
-  { value: "rust_like", label: "Rust-like marks" },
-  { value: "drying", label: "Drying" },
-  { value: "insects", label: "Insects visible" },
-];
+  { value: "yellowing", key: "symptom.yellowing" },
+  { value: "spots", key: "symptom.spots" },
+  { value: "wilting", key: "symptom.wilting" },
+  { value: "rust_like", key: "symptom.rust_like" },
+  { value: "drying", key: "symptom.drying" },
+  { value: "insects", key: "symptom.insects" },
+] as const;
 
 /**
  * Farm details form — POST /api/v1/assessments. On success the
@@ -51,12 +50,20 @@ export function FarmDetailsPage() {
   const navigate = useNavigate();
   const { startAssessment } = useAssessment();
   const { config, error: configError, loading: configLoading } = useConfig();
-  const { locale } = useLocale();
+  const { t, locale } = useI18n();
 
   const [irrigation, setIrrigation] = useState<IrrigationHistory>("not_sure");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [symptomError, setSymptomError] = useState<string | null>(null);
+
+  const stageOptions = [
+    ...STAGE_ORDER.map((value) => ({
+      value: value as string,
+      label: translate(locale, `stage.${value}` as `stage.${typeof value}`),
+    })),
+    { value: "not_sure", label: t("common.notSure") },
+  ];
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -71,11 +78,11 @@ export function FarmDetailsPage() {
       .map((value) => String(value))
       .filter(Boolean);
     if (symptoms.length === 0) {
-      setSymptomError("Select at least one symptom you can see.");
+      setSymptomError(t("farm.symptomsError"));
       return;
     }
     if (!data.get("area_code")) {
-      setFormError("Select your pilot area.");
+      setFormError(t("farm.areaError"));
       return;
     }
 
@@ -113,7 +120,7 @@ export function FarmDetailsPage() {
     };
 
     if (payload.irrigation_history === "known" && !payload.last_irrigation_date) {
-      setFormError("Enter the last irrigation date, or choose “Not sure”.");
+      setFormError(t("farm.dateError"));
       return;
     }
 
@@ -128,7 +135,7 @@ export function FarmDetailsPage() {
           `${cause.message}${cause.requestId ? ` (request ${cause.requestId})` : ""}`,
         );
       } else {
-        setFormError("Something went wrong saving the assessment. Try again.");
+        setFormError(t("farm.saveError"));
       }
     } finally {
       setSubmitting(false);
@@ -136,40 +143,44 @@ export function FarmDetailsPage() {
   }
 
   return (
-    <div className="stack">
-      <h1>
-        Farm ki Tafseel
-        <span className="label-en">Farm details</span>
+    <div className="page page--farm stack">
+      <img
+        className="page-tex"
+        src="/images/soil-texture.jpg"
+        alt=""
+        loading="lazy"
+        decoding="async"
+        aria-hidden="true"
+      />
+      <h1 className="page-title">
+        {t("farm.title")}
+        {locale === "ur" ? (
+          <span className="label-en" dir="ltr">
+            {translate("en", "farm.title")}
+          </span>
+        ) : null}
       </h1>
-      <p className="page-intro">
-        Fields marked <span className="field__required">*</span> are required.
-        Everything else can be “not sure”.
-      </p>
+      <p className="page-intro">{t("farm.intro")}</p>
 
       {formError ? <Alert>{formError}</Alert> : null}
-      {configError ? (
-        <Alert>
-          Live configuration unavailable ({configError}) — area list may be
-          out of date.
-        </Alert>
-      ) : null}
+      {configError ? <Alert>{t("farm.configWarn")}</Alert> : null}
 
-      <form onSubmit={handleSubmit}>
-        <ChoiceGroup legend="Crop" hint="The pilot supports wheat only.">
+      <form onSubmit={handleSubmit} className="farm-form">
+        <ChoiceGroup legend={t("farm.cropLegend")} hint={t("farm.cropHint")}>
           <Choice
             type="checkbox"
             name="crop_confirmed"
             required
-            label="I confirm this field is wheat (گندم)"
+            label={t("farm.cropConfirm")}
           />
         </ChoiceGroup>
 
         <SelectField
-          label="Area"
+          label={t("farm.areaLabel")}
           name="area_code"
           required
           placeholder={
-            configLoading ? "Loading areas…" : "Select your pilot area"
+            configLoading ? t("farm.areaLoading") : t("farm.areaPlaceholder")
           }
           options={
             config
@@ -180,29 +191,29 @@ export function FarmDetailsPage() {
               : []
           }
         />
-        <ChoiceGroup legend="Area confirmation">
+        <ChoiceGroup legend={t("farm.areaConfirmLegend")}>
           <Choice
             type="checkbox"
             name="area_confirmed"
             required
-            label="I confirm this Bahawalpur pilot area"
+            label={t("farm.areaConfirm")}
           />
         </ChoiceGroup>
 
         <SelectField
-          label="Growth stage"
+          label={t("farm.growthLabel")}
           name="growth_stage"
-          options={GROWTH_STAGES}
+          options={stageOptions}
           defaultValue="not_sure"
         />
 
         <SelectField
-          label="Irrigation history"
+          label={t("farm.irrigationLabel")}
           name="irrigation_history"
           required
           options={[
-            { value: "known", label: "Known" },
-            { value: "not_sure", label: "Not sure" },
+            { value: "known", label: t("common.known") },
+            { value: "not_sure", label: t("common.notSure") },
           ]}
           value={irrigation}
           onChange={(event) =>
@@ -211,7 +222,7 @@ export function FarmDetailsPage() {
         />
         {irrigation === "known" ? (
           <TextInput
-            label="Last irrigation date"
+            label={t("farm.lastIrrigation")}
             name="last_irrigation_date"
             type="date"
             required
@@ -219,57 +230,57 @@ export function FarmDetailsPage() {
         ) : null}
 
         <SelectField
-          label="Soil texture"
+          label={t("farm.soilTexture")}
           name="soil_texture"
           options={[
-            { value: "sandy", label: "Sandy" },
-            { value: "loamy", label: "Loamy" },
-            { value: "clayey", label: "Clayey" },
-            { value: "not_sure", label: "Not sure" },
+            { value: "sandy", label: t("soil.sandy") },
+            { value: "loamy", label: t("soil.loamy") },
+            { value: "clayey", label: t("soil.clayey") },
+            { value: "not_sure", label: t("common.notSure") },
           ]}
           defaultValue="not_sure"
         />
         <SelectField
-          label="Soil moisture (by hand)"
+          label={t("farm.soilMoisture")}
           name="soil_moisture"
           options={[
-            { value: "dry", label: "Dry" },
-            { value: "moist", label: "Moist" },
-            { value: "wet", label: "Wet" },
-            { value: "not_sure", label: "Not sure" },
+            { value: "dry", label: t("moisture.dry") },
+            { value: "moist", label: t("moisture.moist") },
+            { value: "wet", label: t("moisture.wet") },
+            { value: "not_sure", label: t("common.notSure") },
           ]}
           defaultValue="not_sure"
         />
         <SelectField
-          label="Drainage"
+          label={t("farm.drainage")}
           name="drainage"
           options={[
-            { value: "good", label: "Good" },
-            { value: "poor", label: "Poor" },
-            { value: "waterlogging", label: "Waterlogging" },
-            { value: "not_sure", label: "Not sure" },
+            { value: "good", label: t("drainage.good") },
+            { value: "poor", label: t("drainage.poor") },
+            { value: "waterlogging", label: t("drainage.waterlogging") },
+            { value: "not_sure", label: t("common.notSure") },
           ]}
           defaultValue="not_sure"
         />
 
         <SelectField
-          label="When did symptoms start?"
+          label={t("farm.onsetLabel")}
           name="symptom_onset"
           options={[
-            { value: "today", label: "Today" },
-            { value: "recent", label: "Within the last few days" },
-            { value: "over_a_week", label: "Over a week ago" },
-            { value: "not_sure", label: "Not sure" },
+            { value: "today", label: t("onset.today") },
+            { value: "recent", label: t("onset.recent") },
+            { value: "over_a_week", label: t("onset.over_a_week") },
+            { value: "not_sure", label: t("onset.not_sure") },
           ]}
           defaultValue="not_sure"
         />
 
-        <ChoiceGroup legend="Are symptoms spreading?" columns>
+        <ChoiceGroup legend={t("farm.spreadingLegend")} columns>
           {(
             [
-              { value: "yes", label: "Yes" },
-              { value: "no", label: "No" },
-              { value: "not_sure", label: "Not sure" },
+              { value: "yes", key: "spreading.yes" },
+              { value: "no", key: "spreading.no" },
+              { value: "not_sure", key: "spreading.not_sure" },
             ] as const
           ).map((option) => (
             <Choice
@@ -279,14 +290,14 @@ export function FarmDetailsPage() {
               value={option.value}
               required
               defaultChecked={option.value === "not_sure"}
-              label={option.label}
+              label={t(option.key)}
             />
           ))}
         </ChoiceGroup>
 
         <ChoiceGroup
-          legend="Symptoms you can see"
-          hint="Select at least one."
+          legend={t("farm.symptomsLegend")}
+          hint={t("farm.symptomsHint")}
           columns
         >
           {SYMPTOM_CHIPS.map((chip) => (
@@ -295,44 +306,39 @@ export function FarmDetailsPage() {
               type="checkbox"
               name="symptoms"
               value={chip.value}
-              label={chip.label}
+              label={t(chip.key)}
             />
           ))}
         </ChoiceGroup>
         {symptomError ? <Alert>{symptomError}</Alert> : null}
 
         <TextareaField
-          label="Notes"
+          label={t("farm.notesLabel")}
           name="notes"
-          hint="Up to 1500 characters. Optional."
+          hint={t("farm.notesHint")}
           maxLength={1500}
         />
 
-        <ChoiceGroup
-          legend="Privacy"
-          hint="Consent is required to save an assessment. GPS coordinates are not collected."
-        >
+        <ChoiceGroup legend={t("farm.privacyLegend")} hint={t("farm.privacyHint")}>
           <Choice
             type="checkbox"
             name="consent_given"
             required
-            label="I agree to save this assessment and its photos for my own use"
+            label={t("farm.consent")}
           />
           <Choice
             type="checkbox"
             name="gemini_explanation_consent"
-            label="Add the optional AI explanation (sends text — never photos — to Gemini)"
+            label={t("farm.geminiConsent")}
           />
         </ChoiceGroup>
 
         <div className="stack" style={{ marginBlockStart: "var(--space-5)" }}>
           <Button type="submit" block disabled={submitting || configLoading}>
-            {submitting
-              ? "Saving…"
-              : "Photo Upload Karein — Continue to photos"}
+            {submitting ? t("farm.saving") : t("farm.submit")}
           </Button>
           <LinkButton to="/" variant="secondary" block>
-            Back
+            {t("common.back")}
           </LinkButton>
         </div>
       </form>

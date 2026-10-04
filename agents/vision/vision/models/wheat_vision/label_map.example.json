@@ -1,0 +1,14 @@
+{
+  "_comment": "Copy to label_map.json. Left side = the model's label names (lower/upper case does not matter). Right side = an allowed class.",
+  "map": {
+    "healthy": "healthy_looking",
+    "yellow rust": "rust_like_pustules",
+    "brown rust": "rust_like_pustules",
+    "powdery mildew": "spots_or_blotches",
+    "septoria": "spots_or_blotches"
+  },
+  "not_wheat_labels": [],
+  "min_probability": 0.5,
+  "medium_probability": 0.75,
+  "secondary_probability": 0.2
+}

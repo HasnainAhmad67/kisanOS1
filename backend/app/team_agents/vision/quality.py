@@ -9,6 +9,10 @@ from PIL import Image
 
 MAX_BYTES = 10 * 1024 * 1024
 MIN_SHORT_SIDE = 640
+# Hard-block floor: below this no visible-sign screening can run at all.
+MIN_ACCEPT_SIDE = 96
+# Hard-block blur: below this no shape (leaf/plant) is distinguishable.
+HARD_BLUR_MIN = 25.0
 BLUR_MIN = 100.0
 BRIGHT_MIN = 40.0
 BRIGHT_MAX = 220.0
@@ -40,13 +44,24 @@ def _plant_fraction(img: Image.Image) -> float:
 
 
 def check_quality(image_bytes: bytes) -> dict:
+    """Strict quality gate with two severities.
+
+    hard_issues: the photo cannot support screening at all (undecodable,
+    extreme exposure, <96 px, no plant area, shapeless blur) -> the Vision
+    Agent must NOT run the model.
+    soft_issues: the photo is imperfect but interpretable (>=96 px low
+    resolution, mild blur) -> the Vision Agent may run the model with a
+    low-confidence/low-quality warning.
+    `passed`/`issues` keep their original strict meaning (no issues at all).
+    """
     result = {"passed": False, "blur_score": None, "brightness": None,
               "plant_fraction": None, "width": None, "height": None,
-              "issues": [], "tips": []}
+              "issues": [], "tips": [], "hard_issues": [], "soft_issues": []}
 
-    def fail(code):
+    def fail(code, hard=True):
         result["issues"].append(code)
         result["tips"].append(TIPS[code])
+        (result["hard_issues"] if hard else result["soft_issues"]).append(code)
 
     if len(image_bytes) > MAX_BYTES:
         fail("too_large")
@@ -61,7 +76,8 @@ def check_quality(image_bytes: bytes) -> dict:
 
     result["width"], result["height"] = img.size
     if min(img.size) < MIN_SHORT_SIDE:
-        fail("low_resolution")
+        # <96 px: hard block. 96-639 px: soft warning (inference still runs).
+        fail("low_resolution", hard=min(img.size) < MIN_ACCEPT_SIDE)
 
     # Work on a downscaled copy so scores do not depend on phone megapixels
     work = img.copy()
@@ -72,7 +88,8 @@ def check_quality(image_bytes: bytes) -> dict:
     result["plant_fraction"] = round(_plant_fraction(work), 3)
 
     if result["blur_score"] < BLUR_MIN:
-        fail("blurry")
+        # Shapeless mush: hard block. Mild blur: soft warning.
+        fail("blurry", hard=result["blur_score"] < HARD_BLUR_MIN)
     if result["brightness"] < BRIGHT_MIN:
         fail("too_dark")
     elif result["brightness"] > BRIGHT_MAX:

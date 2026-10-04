@@ -1,0 +1,5 @@
+numpy
+Pillow
+onnxruntime        # the self-hosted model runs here (CPU, offline)
+pydantic>=2        # only needed for schema.py (backend/local checks)
+onnx               # tests only: the tests build a small stand-in ONNX model

@@ -1,0 +1,13 @@
+{
+  "_warning": "SAMPLE / MOCK DATA - NOT REAL MANDI PRICES. For demo and tests only.",
+  "records": [
+    {"crop": "wheat", "market": "Bahawalpur", "district": "Bahawalpur", "price": 3000, "price_min": 2950, "price_max": 3050,
+     "unit": "PKR per 40 kg", "is_sample": true,
+     "source_title": "SAMPLE (mock) price data bundled with the KisanOS Market Agent - not a real market source",
+     "source_url": "https://example.com/kisanos-sample-data-not-real", "publisher": "KisanOS demo (mock data)"},
+    {"crop": "wheat", "market": "Multan", "district": "Multan", "price": 3100, "price_min": 3050, "price_max": 3150,
+     "unit": "PKR per 40 kg", "is_sample": true,
+     "source_title": "SAMPLE (mock) price data bundled with the KisanOS Market Agent - not a real market source",
+     "source_url": "https://example.com/kisanos-sample-data-not-real", "publisher": "KisanOS demo (mock data)"}
+  ]
+}

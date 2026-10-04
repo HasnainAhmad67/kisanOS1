@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 
@@ -42,6 +43,12 @@ class Settings(BaseSettings):
     market_quote_stale_days: int = Field(default=7, ge=1, le=90)
     allow_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     demo_mode: bool = True
+    # "local" = background asyncio jobs + polling (default, local dev).
+    # "serverless" = POST /analyze runs the whole job inline and returns the
+    # full results in the response body (Vercel: background tasks and
+    # in-memory state do not survive between requests).
+    # Empty string = auto-detect: serverless when the VERCEL env var is "1".
+    execution_mode: str = ""
     source_registry_version: str = "2026-10-03.1"
     policy_version: str = "kisanos-safe-policy-1.0.0"
     consent_version: str = "2026-10-03-gemini-v1"
@@ -57,6 +64,16 @@ class Settings(BaseSettings):
     def origins(self) -> list[str]:
         return [v.strip() for v in self.allow_origins.split(",") if v.strip()]
 
+    @property
+    def is_serverless(self) -> bool:
+        """True when analysis must run inline (Vercel or EXECUTION_MODE=serverless)."""
+        mode = self.execution_mode.strip().lower()
+        if mode in {"serverless", "vercel", "inline"}:
+            return True
+        if mode in {"local", "async", "0", "false"}:
+            return False
+        return os.environ.get("VERCEL", "") == "1"
+
 
 # Pilot areas are an explicit allowlist, not a geocoder or automatic fallback.
 AREAS: dict[str, dict[str, float | str]] = {
@@ -71,5 +88,16 @@ AREAS: dict[str, dict[str, float | str]] = {
 @lru_cache
 def get_settings() -> Settings:
     settings = Settings()
+    if os.environ.get("VERCEL", "") == "1":
+        # Vercel's filesystem is read-only except /tmp. Remap local defaults so
+        # the app still boots without env vars; set DATABASE_URL to a real
+        # Postgres/Neon/Supabase string for persistence (see
+        # backend/.env.vercel.example).
+        if settings.database_url.startswith("sqlite:///./"):
+            settings.database_url = "sqlite:////tmp/kisanos.db"
+        if settings.image_storage_dir == Path("./data/images"):
+            settings.image_storage_dir = Path("/tmp/kisanos-images")
+        if settings.weather_cache_path == Path("./data/weather_cache.sqlite3"):
+            settings.weather_cache_path = Path("/tmp/weather_cache.sqlite3")
     settings.image_storage_dir.mkdir(parents=True, exist_ok=True)
     return settings

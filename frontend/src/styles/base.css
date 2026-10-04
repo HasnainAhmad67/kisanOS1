@@ -13,7 +13,8 @@ html {
 body {
   margin: 0;
   min-height: 100dvh;
-  background: var(--color-surface);
+  background: var(--bg-decor); /* subtle farm-tone gradients behind the column */
+  background-attachment: fixed;
   color: var(--color-text);
   font-family: var(--font-sans);
   font-size: var(--text-base);
@@ -88,6 +89,13 @@ svg {
 
 .skip-link:focus {
   inset-block-start: var(--space-2);
+}
+
+/* Numbers/dates stay LTR when embedded in RTL prose. */
+.num {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
 }
 
 @media (prefers-reduced-motion: reduce) {

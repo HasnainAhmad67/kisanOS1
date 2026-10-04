@@ -1,0 +1,10 @@
+{
+  "_comment": "Copy to model_card.json and fill in with the real details from the model's page.",
+  "name": "<model name>",
+  "url": "https://<the model's page>",
+  "publisher": "<who published it>",
+  "license": "<license>",
+  "source_status": "supporting",
+  "retrieved_at": "2026-10-04T00:00:00Z",
+  "validated_locally": false
+}

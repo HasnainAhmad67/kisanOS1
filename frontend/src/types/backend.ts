@@ -126,6 +126,10 @@ export interface FollowUpCreated {
 export interface QualityVerdict {
   passed: boolean;
   issues: string[];
+  /** Issues that hard-block inference (no model run). */
+  hard_issues?: string[];
+  /** Issues soft enough for a low-confidence screening run. */
+  soft_issues?: string[];
   blur_score?: number;
   brightness?: number;
   plant_fraction?: number;
@@ -339,6 +343,14 @@ export interface AssessmentResultsPending {
 }
 
 export type AssessmentResultsResponse = AssessmentResults | AssessmentResultsPending;
+
+/**
+ * POST /assessments/{id}/analyze:
+ *  - local mode → 202 body `AnalyzeAccepted` (job_id, poll /jobs/{id});
+ *  - serverless mode (Vercel) → 200 body `AssessmentResults` inline.
+ * Discriminate structurally: only the results carry an `agents` array.
+ */
+export type AnalyzeResponse = AnalyzeAccepted | AssessmentResults;
 
 /* ------------------------------------------------------- misc API shapes */
 

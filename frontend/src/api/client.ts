@@ -10,7 +10,7 @@
  */
 
 import type {
-  AnalyzeAccepted,
+  AnalyzeResponse,
   ApiErrorBody,
   AssessmentCreatePayload,
   AssessmentCreated,
@@ -137,12 +137,12 @@ export function uploadImage(
   );
 }
 
-/** POST /api/v1/assessments/{id}/analyze (202: queues or reuses the job) */
+/** POST /api/v1/assessments/{id}/analyze — 202 queued job (local) or 200 inline results (serverless). */
 export function startAnalysis(
   assessmentId: string,
   token: string,
-): Promise<AnalyzeAccepted> {
-  return request<AnalyzeAccepted>(
+): Promise<AnalyzeResponse> {
+  return request<AnalyzeResponse>(
     `/assessments/${encodeURIComponent(assessmentId)}/analyze`,
     { method: "POST", token },
   );

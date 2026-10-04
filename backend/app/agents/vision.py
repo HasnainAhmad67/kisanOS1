@@ -37,6 +37,8 @@ UNSAFE_MODEL_TEXT = re.compile(
     r"\b(diagnos\w*|confirm\w*|definit\w*|pesticid\w*|fungicid\w*|insecticid\w*|herbicid\w*|chemical\w*|spray\w*|dose\w*|urea|dap|treat\w*|infection\w*|pathogen\w*|irrigat\w*|yield\w*|guarantee\w*|cure\w*|recommend\w*)\b",
     re.IGNORECASE,
 )
+# Soft-warning (low-quality) photos may only surface this safe vocabulary.
+LOW_QUALITY_CLASSES = {"healthy_looking", "rust_like_pustules"}
 
 
 def _safe_image_bytes(raw: bytes) -> tuple[bytes, str]:
@@ -126,14 +128,18 @@ def _no_model_configured_result(
 
 
 def _accept_prediction(
-    assessment_id: str, payload: dict[str, Any], passed: list[dict[str, Any]], now: datetime
+    assessment_id: str,
+    payload: dict[str, Any],
+    passed: list[dict[str, Any]],
+    now: datetime,
+    low_quality: bool = False,
 ) -> AgentResult:
     """Validate a model prediction and build the result. Fail-closed on any
     unsupported content: non-wheat crop, unsafe text, or malformed output.
 
-    Shared by the private HTTP endpoint and (future) local model inference.
-    Raises ValueError/KeyError/TypeError/AttributeError on malformed payloads;
-    callers map that to an explicit abstention.
+    ``low_quality=True`` marks a soft-warning run: the photos only passed the
+    soft tier of the quality gate, so the result is capped at status=partial,
+    evidence_band/confidence=low, safe vocabulary only, and retake guidance.
     """
     crop_detected = payload.get("crop_detected")
     if crop_detected != "wheat":
@@ -152,6 +158,14 @@ def _accept_prediction(
             input_evidence=["Quality-approved photos; crop check not passed"],
         )
     findings = payload.get("visible_findings", [])
+    if low_quality:
+        # Low-confidence screening: only healthy | rust-like may surface;
+        # anything else collapses to "unclear" below. Never disease language.
+        findings = [
+            finding
+            for finding in findings
+            if isinstance(finding, dict) and finding.get("class") in LOW_QUALITY_CLASSES
+        ]
     observations, seen = [], set()
     for finding in findings[:8]:
         label = finding.get("class") if isinstance(finding, dict) else None
@@ -177,7 +191,65 @@ def _accept_prediction(
             observations.append(safe)
             seen.add(safe)
     if not observations:
-        observations = ["The model did not return a supported visible finding."]
+        if low_quality:
+            observations = [LABELS["unclear"]]
+        else:
+            observations = ["The model did not return a supported visible finding."]
+    if low_quality:
+        # Soft-warning policy: preliminary, low-confidence screening only.
+        quality_issues = sorted(
+            {issue for item in passed for issue in item["quality"].get("issues", [])}
+        )
+        return AgentResult(
+            assessment_id=assessment_id,
+            agent_id="vision",
+            status="partial",
+            summary=(
+                "Photo quality is limited. This is a low-confidence visible-sign "
+                "screening result; retake a clearer close-up if possible."
+            ),
+            observations=observations,
+            possible_causes=[],
+            checks=[
+                "Retake a clearer close-up in daylight with the affected leaf in focus.",
+                "Compare the visible pattern on several plants and inspect both sides of affected leaves.",
+            ],
+            evidence_band="low",
+            evidence_reason=(
+                "Low-quality image: low-confidence screening only; the evidence band "
+                "and confidence are capped at low, and no cause is established."
+            ),
+            sources=[
+                Source(
+                    title="Self-hosted KisanOS vision inference",
+                    publisher="Configured private model service",
+                    source_status="unverified",
+                    note="Model artifact and locally validated performance must be recorded by deployment.",
+                )
+            ],
+            provider_or_model="self-hosted",
+            version=str(payload.get("model_version", VERSION))[:80],
+            created_at=now,
+            safety_flags=[
+                "low_quality_image",
+                "low_confidence",
+                "retake_recommended",
+                "not_a_diagnosis",
+            ],
+            data={
+                "quality_passed": False,
+                "low_quality": True,
+                "confidence": "low",
+                "quality_issues": quality_issues,
+                "images_accepted": len(passed),
+                "image_ids": [item["record"]["id"] for item in passed],
+                "model_version": str(payload.get("model_version", "not reported"))[:80],
+            },
+            input_evidence=[
+                "Image quality warning: low-quality photo used only for low-confidence visible-sign screening",
+                *[f"Quality issue: {issue.replace('_', ' ')}" for issue in quality_issues],
+            ],
+        )
     # The model is uncalibrated locally: confidence is capped at medium and never a disease probability.
     evidence_band = "medium" if len(passed) >= 2 and payload.get("confidence") == "medium" else "low"
     return AgentResult(
@@ -242,7 +314,22 @@ async def analyze_images(
         except (OSError, KeyError, TypeError):
             failures.append("image_unreadable")
     passed = [item for item in checked if item["quality"].get("passed")]
-    if not passed:
+    # Soft tier: the strict gate failed but the file decodes and every issue is
+    # soft (>=96 px low resolution, mild blur). These still run the model,
+    # flagged low-quality / low-confidence (never medium/high evidence).
+    soft = [
+        item
+        for item in checked
+        if not item["quality"].get("passed")
+        and item["quality"].get("hard_issues") is not None
+        and not item["quality"].get("hard_issues")
+        and bool(item["quality"].get("soft_issues"))
+    ]
+    runnable = passed or soft
+    low_quality = not passed and bool(soft)
+    if not runnable:
+        # HARD BLOCK: undecodable / extreme exposure / <96 px / no plant area /
+        # shapeless blur. The model is NOT run; no disease or stress inference.
         return AgentResult(
             assessment_id=assessment_id,
             agent_id="vision",
@@ -266,11 +353,11 @@ async def analyze_images(
     if settings.vision_inference_url:
         # The only path that receives images is an operator-configured private self-hosted endpoint.
         try:
-            payload = await _fetch_remote_prediction(settings, assessment_id, intake, passed)
+            payload = await _fetch_remote_prediction(settings, assessment_id, intake, runnable)
         except (httpx.HTTPError, ValueError, KeyError, TypeError, AttributeError, OSError):
             return _model_unavailable_result(
                 assessment_id,
-                passed,
+                runnable,
                 now,
                 "Service error or schema mismatch; output safely abstained.",
             )
@@ -279,20 +366,20 @@ async def analyze_images(
         # No artifacts are shipped today, so this returns (None, reason) and
         # Vision stays in safe fallback - never a dummy or example result.
         try:
-            payload, reason = predict_locally([item["raw"] for item in passed], intake)
+            payload, reason = predict_locally([item["raw"] for item in runnable], intake)
         except Exception:  # noqa: BLE001 - a broken loader must never crash the pipeline.
             payload, reason = None, "local model inference raised an unexpected error; no result was used"
         if payload is None:
             return _no_model_configured_result(
-                assessment_id, passed, now, reason or "local model inference is not configured"
+                assessment_id, runnable, now, reason or "local model inference is not configured"
             )
 
     try:
-        return _accept_prediction(assessment_id, payload, passed, now)
+        return _accept_prediction(assessment_id, payload, runnable, now, low_quality=low_quality)
     except (ValueError, KeyError, TypeError, AttributeError):
         return _model_unavailable_result(
             assessment_id,
-            passed,
+            runnable,
             now,
             "Service error or schema mismatch; output safely abstained.",
         )

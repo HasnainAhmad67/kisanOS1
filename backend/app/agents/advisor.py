@@ -206,6 +206,16 @@ def build_farm_plan(assessment_id: str, intake: dict[str, Any], agents: list[Age
             candidates.append(
                 (check, "Vision", "Image evidence is limited to visible signs and cannot confirm cause.", ["vision"])
             )
+    if vision and vision_ok and "low_quality_image" in (vision.safety_flags or []):
+        # Low-quality photo: surface the retake recommendation first so it is
+        # not pushed out when other checks fill the top-3. (Dedup keeps the
+        # later copy of the same title from being chosen twice.)
+        retake = next((c for c in vision.checks if c.casefold().startswith("retake")), None)
+        if retake:
+            candidates.insert(
+                0,
+                (retake, "Vision", "The photo was low-quality; the visible-sign check is low-confidence only.", ["vision"]),
+            )
 
     # Defense in depth (B5/D2): never surface chemical, dosing, imperative
     # irrigation, diagnosis-claim, guarantee or trading wording.

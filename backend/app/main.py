@@ -1,5 +1,16 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path as _Path
+
+# Vercel loads this file as the function entry from the project root, where the
+# `app` package (backend/app) is not importable yet. Adding backend/ to sys.path
+# makes the normal `from app...` imports resolve; no-op in local dev (uvicorn
+# runs with backend/ as the working directory).
+_BACKEND_ROOT = str(_Path(__file__).resolve().parents[1])
+if _BACKEND_ROOT not in sys.path:
+    sys.path.insert(0, _BACKEND_ROOT)
+
 import asyncio
 import logging
 import time

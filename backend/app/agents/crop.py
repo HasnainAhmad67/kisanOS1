@@ -190,10 +190,19 @@ def assess_crop(assessment_id: str, intake: dict[str, Any], vision: AgentResult 
     reported_tags = [t for t in raw_symptoms if t in SYMPTOM_LABELS]
     farmer_evidence = [SYMPTOM_LABELS[t] for t in reported_tags]
     vision_status, photo_evidence = _vision_parts(vision)
+    if isinstance(vision, dict):
+        vision_flags = vision.get("safety_flags") or []
+    else:
+        vision_flags = getattr(vision, "safety_flags", None) or []
 
     combined = " ".join(farmer_evidence + photo_evidence).lower()
     has_evidence = bool(farmer_evidence or photo_evidence)
     band = "medium" if (farmer_evidence and photo_evidence) else "low"
+    if "low_quality_image" in vision_flags:
+        # Soft-warning Vision output is consumed as photo_visible but stays
+        # low evidence: never confirmation, farmer-reported symptoms remain
+        # primary, and the band is never lifted to medium.
+        band = "low"
 
     # ------------------------------------------------------------------
     # Hypotheses (never probabilities, never confirmed diagnoses).

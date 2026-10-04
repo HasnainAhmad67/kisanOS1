@@ -1,41 +1,41 @@
 /**
- * KisanOS design tokens (PRD palette).
+ * KisanOS design tokens — dark-first premium farm palette.
  *
- * Contrast (WCAG AA) notes — all text pairings verified against
- * --color-surface #F7F5EF (L≈0.905):
- *   charcoal #1F2933  ≈ 15:1  ✓ normal text
- *   field green #1F5E3B ≈ 7:1  ✓ normal text / white-on-green ✓
- *   soil brown #7A573A ≈ 5.8:1 ✓ normal text
- *   evidence blue #2F5D8C ≈ 6.2:1 ✓ normal text
- *   deep red #A33A2B  ≈ 6.0:1  ✓ normal text
- *   amber #B7791F     ≈ 3.3:1  → large text / borders / icons only;
- *                                use --color-attention-text #8A5A0B (≈5.3:1)
- *                                whenever amber carries normal-size text.
+ * Contrast (WCAG AA) notes — all pairings verified against
+ * --color-surface #0F1A14 (L≈0.013):
+ *   off-white #F0EDE6 ≈ 15:1 ✓ normal text
+ *   field green #4CAF7D ≈ 6.6:1 ✓ normal text / dark-on-green ✓
+ *   wheat gold #E8B84B ≈ 9:1  ✓ normal text
+ *   muted #9BA8A0      ≈ 6.4:1 ✓ normal text
+ *   evidence blue #5B9BD5 ≈ 6.5:1 ✓ normal text
+ *   danger #E05C4B     ≈ 4.9:1 ✓ normal text
+ *   --color-on-primary is dark (#0F1A14) because the primary green is bright.
  */
 
 :root {
-  /* Palette (PRD) */
-  --color-primary: #1f5e3b; /* Field green — primary actions */
-  --color-primary-strong: #17492e; /* pressed/hover */
-  --color-on-primary: #ffffff;
-  --color-secondary: #7a573a; /* Soil brown — secondary accent */
-  --color-surface: #f7f5ef; /* Warm off-white — main surface */
-  --color-surface-raised: #ffffff; /* cards, inputs */
-  --color-text: #1f2933; /* Charcoal — primary text */
-  --color-text-muted: #52606d; /* secondary text (≈7:1 on surface) */
-  --color-attention: #b7791f; /* Amber — attention (accents/borders) */
-  --color-attention-text: #8a5a0b; /* AA-safe amber for normal text */
-  --color-safety: #a33a2b; /* Deep red — safety / expert review */
-  --color-info: #2f5d8c; /* Evidence blue — sources / info */
-  --color-border: #d9d5c9;
-  --color-focus: #2f5d8c;
+  /* Palette (dark-first, farm-themed) */
+  --color-primary: #4caf7d; /* Field green — primary actions (bright for dark bg) */
+  --color-primary-strong: #3e9468; /* pressed/hover */
+  --color-on-primary: #0f1a14; /* dark ink on bright green (AA) */
+  --color-secondary: #e8b84b; /* Wheat gold — secondary accent */
+  --color-surface: #0f1a14; /* Deep charcoal-green — page background */
+  --color-surface-mid: #15241b; /* Main dark surface — page panels */
+  --color-surface-raised: #1a2b22; /* cards, inputs */
+  --color-text: #f0ede6; /* Warm off-white — primary text */
+  --color-text-muted: #9ba8a0; /* secondary text (≈6.4:1 on surface) */
+  --color-attention: #e8b84b; /* Wheat gold — attention (accents/borders) */
+  --color-attention-text: #e8b84b; /* AA-safe gold for normal text on dark */
+  --color-safety: #e05c4b; /* Danger red — safety / expert review */
+  --color-info: #5b9bd5; /* Evidence blue — sources / info */
+  --color-border: rgb(240 237 230 / 0.12); /* hairline on dark */
+  --color-focus: #5b9bd5;
 
-  /* Status tints (badge backgrounds; text stays the base colour) */
-  --tint-complete: color-mix(in srgb, var(--color-primary) 14%, white);
-  --tint-partial: color-mix(in srgb, var(--color-attention) 16%, white);
-  --tint-info: color-mix(in srgb, var(--color-info) 14%, white);
-  --tint-neutral: color-mix(in srgb, var(--color-text) 10%, white);
-  --tint-safety: color-mix(in srgb, var(--color-safety) 14%, white);
+  /* Status tints (dark badge backgrounds; text stays the base colour) */
+  --tint-complete: color-mix(in srgb, var(--color-primary) 26%, #1a2b22);
+  --tint-partial: color-mix(in srgb, var(--color-attention) 24%, #1a2b22);
+  --tint-info: color-mix(in srgb, var(--color-info) 22%, #1a2b22);
+  --tint-neutral: color-mix(in srgb, var(--color-text) 12%, #1a2b22);
+  --tint-safety: color-mix(in srgb, var(--color-safety) 24%, #1a2b22);
 
   /* Spacing scale (4px base, mobile-first) */
   --space-1: 0.25rem;
@@ -50,6 +50,7 @@
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
+  --radius-3xl: 24px;
 
   /* Typography — Urdu needs a Nastaliq fallback when the locale is 'ur' */
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
@@ -67,8 +68,27 @@
   /* Interaction */
   --touch-min: 44px; /* WCAG 2.5.5 AAA target size / PRD minimum */
   --focus-ring: 0 0 0 3px var(--color-focus);
-  --shadow-card: 0 1px 3px rgb(31 41 51 / 0.08),
-    0 4px 14px rgb(31 41 51 / 0.06);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.45), 0 6px 18px rgb(0 0 0 / 0.35);
+  --shadow-lift: 0 8px 10px rgb(0 0 0 / 0.4), 0 20px 44px rgb(0 0 0 / 0.5);
+  --shadow-press: 0 1px 2px rgb(0 0 0 / 0.5);
+
+  /* Glassmorphism chrome (headers/nav) — dark glass */
+  --glass-bg: rgb(12 25 18 / 0.88); /* header/nav/sidebar dark glass */
+  --glass-border: rgb(240 237 230 / 0.1);
+  --glass-blur: 14px;
+
+  /* Decorative page background (side space on desktop) */
+  --bg-decor: radial-gradient(
+      ellipse 60% 40% at 15% 0%,
+      rgb(76 175 125 / 0.13),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 50% 35% at 90% 100%,
+      rgb(232 184 75 / 0.1),
+      transparent 60%
+    ),
+    var(--color-surface);
 
   /* Layout */
   --content-max: 40rem; /* one-column small-screen layout */
@@ -82,4 +102,24 @@
 [dir="rtl"] body,
 :lang(ur) body {
   font-family: var(--font-urdu);
+}
+
+/* Nastaliq needs generous leading to keep descenders unclipped. */
+[dir="rtl"] body {
+  line-height: 1.85;
+}
+
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3 {
+  line-height: 1.65;
+}
+
+/**
+ * Alternate dark theme — the palette is already dark-first, so this block
+ * only nudges a few values if <html data-theme="dark"> is ever set explicitly.
+ */
+:root[data-theme="dark"] {
+  --glass-bg: rgb(14 24 18 / 0.82);
+  --glass-border: rgb(240 237 230 / 0.12);
 }

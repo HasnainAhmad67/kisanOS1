@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiError, getResults } from "../api/client";
 import { AgentCard } from "../components/AgentCard";
@@ -7,6 +7,7 @@ import { Button, LinkButton } from "../components/Button";
 import { Card } from "../components/Card";
 import { StatusBadge } from "../components/StatusBadge";
 import { useAssessment } from "../hooks/useAssessment";
+import { translate, useI18n, type DictKey } from "../i18n";
 import type {
   AgentId,
   AgentResult,
@@ -15,15 +16,6 @@ import type {
 } from "../types/backend";
 
 const AGENT_ORDER: AgentId[] = ["weather", "water", "crop", "vision", "market"];
-
-const EXPLANATION_REASONS: Record<string, string> = {
-  consent_missing: "explanation consent was not given",
-  disabled: "the explanation service is switched off",
-  key_missing: "no explanation key is configured",
-  timeout: "the explanation service timed out",
-  provider_error: "the explanation provider had an error",
-  invalid_output: "the explanation returned unusable output",
-};
 
 function isPending(
   data: AssessmentResultsResponse,
@@ -35,11 +27,12 @@ function isPending(
  * Results — GET /assessments/{id}/results. Five agent cards in fixed
  * order, then the farm plan (safety banner, ≤3 prioritized checks,
  * conflicts, verification step). No fabricated content: missing agents
- * render an honest "not returned" note.
+ * render an honest "not returned" note. Cards stagger in on load.
  */
 export function ResultsPage() {
   const navigate = useNavigate();
   const { assessment, reset } = useAssessment();
+  const { t, locale } = useI18n();
 
   const [data, setData] = useState<AssessmentResultsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,12 +50,12 @@ export function ResultsPage() {
       setData(results);
     } catch (cause) {
       setError(
-        cause instanceof ApiError ? cause.message : "Results are unavailable.",
+        cause instanceof ApiError ? cause.message : t("results.errorEmpty"),
       );
     } finally {
       setLoading(false);
     }
-  }, [assessment]);
+  }, [assessment, t]);
 
   useEffect(() => {
     void load();
@@ -73,16 +66,34 @@ export function ResultsPage() {
     navigate("/");
   }
 
+  function PageHeading() {
+    return (
+      <h1 className="page-title">
+        {t("results.title")}
+        {locale === "ur" ? (
+          <span className="label-en" dir="ltr">
+            {translate("en", "results.title")}
+          </span>
+        ) : null}
+      </h1>
+    );
+  }
+
   if (loading) {
     return (
-      <div className="stack">
-        <h1>
-          Nateejay
-          <span className="label-en">Your results</span>
-        </h1>
+      <div className="page page--results stack">
+        <img
+          className="page-tex"
+          src="/images/farm-aerial.jpg"
+          alt=""
+          loading="lazy"
+          decoding="async"
+          aria-hidden="true"
+        />
+        <PageHeading />
         <p className="loading-line">
           <span className="spinner" aria-hidden="true" />
-          Nateejay aa rahe hain… Loading results
+          {t("results.loading")}
         </p>
       </div>
     );
@@ -90,20 +101,23 @@ export function ResultsPage() {
 
   if (error) {
     return (
-      <div className="stack">
-        <h1>
-          Nateejay
-          <span className="label-en">Your results</span>
-        </h1>
+      <div className="page page--results stack">
+        <img
+          className="page-tex"
+          src="/images/farm-aerial.jpg"
+          alt=""
+          loading="lazy"
+          decoding="async"
+          aria-hidden="true"
+        />
+        <PageHeading />
         <Alert>{error}</Alert>
-        <p className="empty-note">
-          🌾 Results nahi milay — check your connection and try once more.
-        </p>
+        <p className="empty-note">🌾 {t("results.errorEmpty")}</p>
         <Button block onClick={() => void load()}>
-          Try again
+          {t("common.tryAgain")}
         </Button>
         <Button block variant="secondary" onClick={startNewCheck}>
-          Naya Check — Start New Check
+          {t("results.startNew")}
         </Button>
       </div>
     );
@@ -112,27 +126,24 @@ export function ResultsPage() {
   if (data && isPending(data)) {
     const failed = data.status === "failed";
     return (
-      <div className="stack">
-        <h1>
-          Nateejay
-          <span className="label-en">Your results</span>
-        </h1>
-        {failed ? (
-          <Alert>
-            Analysis mukammal nahi ho saka (the analysis did not finish).
-            Retry it from the analysis screen.
-          </Alert>
-        ) : (
-          <p className="page-intro">
-            ⏳ Analysis abhi chal raha hai — Nateejay yahan dikhenge jab job
-            mukammal ho jaye (results appear once the job finishes).
-          </p>
+      <div className="page page--results stack">
+        <img
+          className="page-tex"
+          src="/images/farm-aerial.jpg"
+          alt=""
+          loading="lazy"
+          decoding="async"
+          aria-hidden="true"
+        />
+        <PageHeading />
+        {failed ? <Alert>{t("results.failed")}</Alert> : (
+          <p className="page-intro">⏳ {t("results.pending")}</p>
         )}
         <LinkButton to="/analysis" block>
-          {failed ? "Retry analysis" : "Back to analysis"}
+          {failed ? t("results.retryAnalysis") : t("results.backAnalysis")}
         </LinkButton>
         <Button block variant="secondary" onClick={startNewCheck}>
-          Naya Check — Start New Check
+          {t("results.startNew")}
         </Button>
       </div>
     );
@@ -145,20 +156,30 @@ export function ResultsPage() {
   const plan = full?.farm_plan ?? null;
   const explanation = full?.ai_explanation ?? null;
 
+  // Reason for a skipped/failed explanation — i18n with raw-key fallback.
+  const explanationReason = explanation?.reason
+    ? txReason(explanation.reason)
+    : null;
+
+  function txReason(reason: string): string {
+    return translate(locale, ("exp." + reason) as DictKey) || reason;
+  }
+
   return (
-    <div className="stack">
-      <h1>
-        Nateejay
-        <span className="label-en">Your results</span>
-      </h1>
-      <p className="page-intro">
-        Screening support only — a plan below is not a confirmed diagnosis.
-      </p>
+    <div className="page page--results stack">
+      <img
+        className="page-tex"
+        src="/images/farm-aerial.jpg"
+        alt=""
+        loading="lazy"
+        decoding="async"
+        aria-hidden="true"
+      />
+      <PageHeading />
+      <p className="page-intro">{t("results.intro")}</p>
 
       {full && full.status === "failed" ? (
-        <Alert>
-          The analysis job reported a failure. Some cards may be incomplete.
-        </Alert>
+        <Alert>{t("results.jobFailed")}</Alert>
       ) : null}
 
       <div className="agent-grid">
@@ -172,10 +193,20 @@ export function ResultsPage() {
       </div>
 
       {plan ? (
-        <Card tone="safety" title="Farm Plan — Aapka Khet Plan">
-          <p className="plan-banner">{plan.safety_banner}</p>
+        <Card tone="safety" title={t("plan.title")}>
+          {/* Safety banner: Urdu primary in Urdu mode; the backend's
+              authoritative English wording always remains visible. */}
+          <p className="plan-banner">
+            {locale === "ur" ? t("safety.banner") : plan.safety_banner}
+          </p>
+          {locale === "ur" ? (
+            <p className="label-en" dir="ltr" style={{ marginTop: 0 }}>
+              {plan.safety_banner}
+            </p>
+          ) : null}
+
           <div className="row" style={{ justifyContent: "space-between" }}>
-            <span className="card__meta">Field status</span>
+            <span className="card__meta">{t("plan.fieldStatus")}</span>
             <StatusBadge status={plan.status} prominent />
           </div>
           <p style={{ marginBlockStart: "var(--space-3)" }}>{plan.rationale}</p>
@@ -183,20 +214,18 @@ export function ResultsPage() {
           {plan.checks.length > 0 ? (
             <>
               <h3 style={{ marginBlockStart: "var(--space-4)" }}>
-                Prioritized checks
+                {t("plan.checks")}
               </h3>
               <ol className="plan-checks">
-                {plan.checks.slice(0, 3).map((check) => (
-                  <li key={check.id}>
-                    <strong>
-                      {check.priority}. {check.title}
-                    </strong>
+                {plan.checks.slice(0, 3).map((check, index) => (
+                  <li key={check.id} style={{ "--step": index + 1 } as CSSProperties}>
+                    <strong className="plan-checks__title">{check.title}</strong>
                     <p style={{ margin: 0 }}>{check.how_to_check}</p>
                     <p className="empty-note" style={{ margin: 0 }}>
-                      Why: {check.why}
+                      {t("plan.why")} {check.why}
                     </p>
                     <p className="empty-note" style={{ margin: 0 }}>
-                      Watch for: {check.what_to_observe}
+                      {t("plan.watch")} {check.what_to_observe}
                     </p>
                     {check.evidence_labels.length > 0 ? (
                       <p className="card__meta">
@@ -212,7 +241,7 @@ export function ResultsPage() {
           {plan.conflicts.length > 0 ? (
             <>
               <h3 style={{ marginBlockStart: "var(--space-4)" }}>
-                Conflicting evidence
+                {t("plan.conflicts")}
               </h3>
               <ul className="agent-card__list">
                 {plan.conflicts.map((conflict, index) => (
@@ -221,7 +250,9 @@ export function ResultsPage() {
                     {Array.isArray(conflict.findings)
                       ? conflict.findings.join("; ")
                       : null}
-                    {conflict.next_check ? ` Next check: ${conflict.next_check}` : ""}
+                    {conflict.next_check
+                      ? ` ${t("plan.nextCheck")} ${conflict.next_check}`
+                      : ""}
                   </li>
                 ))}
               </ul>
@@ -229,44 +260,44 @@ export function ResultsPage() {
           ) : null}
 
           <h3 style={{ marginBlockStart: "var(--space-4)" }}>
-            Verification step
+            {t("plan.verification")}
           </h3>
           <p>{plan.verification_step}</p>
-          <p className="card__meta">Policy {plan.policy_version}</p>
+          <p className="card__meta">
+            {t("plan.policy")} <span className="num">{plan.policy_version}</span>
+          </p>
         </Card>
       ) : (
-        <Card tone="safety" title="Farm Plan — Aapka Khet Plan">
+        <Card tone="safety" title={t("plan.title")}>
           <p className="empty-note" style={{ margin: 0 }}>
-            🌾 Koi plan nahi bana — no farm plan was produced for this check
-            (the analysis may have failed or been interrupted). Retry the
-            analysis to build a plan.
+            🌾 {t("plan.empty")}
           </p>
         </Card>
       )}
 
-      <Card tone="info" title="Explanation">
-        {explanation && explanation.status === "complete" && explanation.farmer_summary ? (
+      <Card tone="info" title={t("exp.title")}>
+        {explanation &&
+        explanation.status === "complete" &&
+        explanation.farmer_summary ? (
           <>
             <p style={{ margin: 0 }}>{explanation.farmer_summary}</p>
             <p className="card__meta">{explanation.disclaimer}</p>
           </>
         ) : (
           <p className="empty-note" style={{ margin: 0 }}>
-            Explanation unavailable
-            {explanation?.reason
-              ? ` — ${EXPLANATION_REASONS[explanation.reason] ?? explanation.reason}`
-              : ""}
-            . The farm plan above stays authoritative.
+            {t("exp.unavailable")}
+            {explanationReason ? ` — ${explanationReason}` : ""}.{" "}
+            {t("exp.authoritative")}
           </p>
         )}
       </Card>
 
       <div className="stack">
         <LinkButton to="/followup" variant="secondary" block>
-          Record a follow-up
+          {t("results.followup")}
         </LinkButton>
         <Button block variant="secondary" onClick={startNewCheck}>
-          Naya Check — Start New Check
+          {t("results.startNew")}
         </Button>
       </div>
     </div>

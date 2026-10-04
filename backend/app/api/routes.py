@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, UploadFile
+from fastapi.responses import JSONResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 from sqlalchemy import desc, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -19,7 +20,7 @@ from app.core.security import new_access_token, require_assessment_token, token_
 from app.core.sources import source_registry
 from app.db import AssessmentRow, FollowUpRow, ImageRow, JobRow, SessionLocal
 from app.schemas import AssessmentCreate, AssessmentCreated, FollowUpCreate
-from app.services.orchestrator import create_analysis_job
+from app.services.orchestrator import create_analysis_job, run_analysis_async
 from app.services.vision_inference import local_model_available
 from app.team_agents.vision.quality import check_quality
 
@@ -287,6 +288,20 @@ async def upload_image(
 
 @router.post("/assessments/{assessment_id}/analyze", status_code=202, tags=["analysis"])
 async def analyze(assessment_id: str, row: Annotated[AssessmentRow, Depends(require_assessment_token)]):
+    settings = get_settings()
+    if settings.is_serverless:
+        # Vercel/serverless: background tasks do not survive between requests,
+        # so the whole job runs INLINE here and the complete results come back
+        # in this response (200). The job row is still created for audit and
+        # is stored in its terminal state (succeeded/partial).
+        try:
+            results = await run_analysis_async(assessment_id)
+        except RuntimeError:
+            raise HTTPException(
+                status_code=500,
+                detail={"code": "analysis_failed", "message": "The analysis job failed."},
+            )
+        return JSONResponse(status_code=200, content=results.model_dump(mode="json"))
     with SessionLocal() as db:
         active = (
             db.query(JobRow)
@@ -425,7 +440,18 @@ async def seed_demo():
         consent_version=settings.consent_version,
     )
     assessment_id, token, _created = _create_record(payload)
-    job_id = create_analysis_job(assessment_id)
+    if settings.is_serverless:
+        # Serverless: run inline so the returned job already has its result.
+        try:
+            results = await run_analysis_async(assessment_id)
+        except RuntimeError:
+            raise HTTPException(
+                status_code=500,
+                detail={"code": "analysis_failed", "message": "The analysis job failed."},
+            )
+        job_id = results.job_id
+    else:
+        job_id = create_analysis_job(assessment_id)
     return {
         "assessment_id": assessment_id,
         "access_token": token,

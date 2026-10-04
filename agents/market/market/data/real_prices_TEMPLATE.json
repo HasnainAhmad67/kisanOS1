@@ -1,0 +1,21 @@
+{
+  "_howto": "Copy this file, fill 'records' with REAL prices from an official source, and set MARKET_PRICE_FILE=<path> in .env. Every record needs a price date and the source it was copied from. Leave is_sample false (or omit it). Do not put guessed or made-up prices here.",
+  "record_format": {
+    "crop": "wheat",
+    "market": "<market / mandi name>",
+    "district": "<district, optional>",
+    "price": "<number: modal / average price>",
+    "price_min": "<number, optional>",
+    "price_max": "<number, optional>",
+    "unit": "PKR per 40 kg   (or: PKR per kg, PKR per 100 kg)",
+    "price_date": "YYYY-MM-DD   (or YYYY-MM-DDTHH:MM:SSZ if the time is known)",
+    "source_title": "<name of the page / report the price came from>",
+    "source_url": "https://<exact page or file>",
+    "publisher": "<who publishes it>",
+    "source_status": "official | supporting | secondary | unverified",
+    "retrieved_at": "YYYY-MM-DDTHH:MM:SSZ   (when you fetched / copied it)",
+    "provider": "amis   (only if copied from AMIS Punjab; otherwise omit)",
+    "is_sample": false
+  },
+  "records": []
+}

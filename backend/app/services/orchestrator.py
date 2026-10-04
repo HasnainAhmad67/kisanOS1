@@ -4,6 +4,7 @@ import asyncio
 import logging
 import uuid
 from collections.abc import Awaitable, Callable
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from typing import Any
 
@@ -20,7 +21,21 @@ from app.services.gemini_explainer import explain_farm_plan
 
 logger = logging.getLogger("kisanos.orchestrator")
 _ACTIVE: dict[str, asyncio.Task] = {}
-_AGENT_LIMIT = asyncio.Semaphore(5)
+# One semaphore per running event loop: serverless mode runs each invocation
+# on a fresh loop (asyncio.run), and asyncio.Semaphore binds to the first
+# loop it is awaited on — reusing it across loops would raise.
+_AGENT_SEMAPHORES: dict[asyncio.AbstractEventLoop, asyncio.Semaphore] = {}
+
+
+def _agent_limit() -> asyncio.Semaphore:
+    loop = asyncio.get_running_loop()
+    semaphore = _AGENT_SEMAPHORES.get(loop)
+    if semaphore is None:
+        for old in [bound for bound in _AGENT_SEMAPHORES if bound.is_closed()]:
+            _AGENT_SEMAPHORES.pop(old, None)
+        semaphore = asyncio.Semaphore(5)
+        _AGENT_SEMAPHORES[loop] = semaphore
+    return semaphore
 
 
 def now() -> datetime:
@@ -68,7 +83,8 @@ def _set_job(
             db.commit()
 
 
-def create_analysis_job(assessment_id: str) -> str:
+def _create_job_row(assessment_id: str) -> str:
+    """Insert the audit job row (queued) and move the assessment to queued."""
     job_id = str(uuid.uuid4())
     with SessionLocal() as db:
         job = JobRow(
@@ -84,6 +100,12 @@ def create_analysis_job(assessment_id: str) -> str:
         assessment.state = "queued"
         assessment.updated_at = now()
         db.commit()
+    return job_id
+
+
+def create_analysis_job(assessment_id: str) -> str:
+    """Local mode: create the job row and run the pipeline in the background."""
+    job_id = _create_job_row(assessment_id)
     _ACTIVE[job_id] = asyncio.create_task(
         _run_job(job_id), name=f"kisanos-analysis-{job_id}"
     )
@@ -111,7 +133,7 @@ async def _tracked(
 ) -> AgentResult:
     _append_event(job_id, name, "started")
     try:
-        async with _AGENT_LIMIT:
+        async with _agent_limit():
             result = await asyncio.wait_for(
                 fn(), timeout=get_settings().agent_timeout_seconds
             )
@@ -313,3 +335,39 @@ async def _run_job(job_id: str) -> None:
                 db.commit()
     finally:
         _ACTIVE.pop(job_id, None)
+
+
+async def run_analysis_async(assessment_id: str) -> AssessmentResults:
+    """Serverless path: run the whole job INLINE and return the result.
+
+    Creates the job row for the audit trail, executes the exact same
+    `_run_job` pipeline within this request (no background task), then
+    returns the stored AssessmentResults. Raises RuntimeError when the job
+    did not produce a result (analysis failed).
+    """
+    job_id = _create_job_row(assessment_id)
+    await _run_job(job_id)
+    with SessionLocal() as db:
+        job = db.get(JobRow, job_id)
+        if job is None or job.result is None:
+            code = job.error_code if job and job.error_code else "analysis_failed"
+            raise RuntimeError(code)
+        return AssessmentResults.model_validate(job.result)
+
+
+def run_analysis_sync(assessment_id: str) -> AssessmentResults:
+    """Synchronous inline analysis (EXECUTION_MODE=serverless).
+
+    Runs on the current event loop's thread when no loop is running; when
+    called from inside a running loop (e.g. a FastAPI handler) the work
+    happens on a worker thread with its own loop, so the caller's loop is
+    never re-entered or blocked by nested asyncio.run.
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(run_analysis_async(assessment_id))
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(
+            lambda: asyncio.run(run_analysis_async(assessment_id))
+        ).result()
