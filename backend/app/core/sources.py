@@ -41,6 +41,18 @@ def source_registry() -> dict:
                 ],
             },
             {
+                "id": "vision-symptom-reference",
+                "title": "Classification of wheat diseases using deep learning networks with field and glasshouse images",
+                "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10953319/",
+                "publisher": "Plant Pathology (John Wiley & Sons / British Society for Plant Pathology); Long, Hartley, Morris & Brown, John Innes Centre",
+                "geography": "UK and Ireland field and glasshouse images; not validated in Punjab or Bahawalpur",
+                "evidence_type": "open-access research article (CC BY 4.0)",
+                "source_status": "supporting",
+                "claims": [
+                    "Wheat foliar symptom-class reference and a published field-image classifier evaluation; it does not validate any model deployed here"
+                ],
+            },
+            {
                 "id": "vision-model",
                 "title": "Configured self-hosted model",
                 "url": None,
