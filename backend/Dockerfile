@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libjpeg62-turbo
 COPY requirements.txt ./requirements.txt
 RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY app ./app
+COPY models ./models
 RUN useradd --create-home --uid 10001 appuser && mkdir -p /var/lib/kisanos/images ./data && chown -R appuser:appuser /var/lib/kisanos ./data
 USER 10001:10001
 EXPOSE 8000

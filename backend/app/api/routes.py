@@ -20,6 +20,7 @@ from app.core.sources import source_registry
 from app.db import AssessmentRow, FollowUpRow, ImageRow, JobRow, SessionLocal
 from app.schemas import AssessmentCreate, AssessmentCreated, FollowUpCreate
 from app.services.orchestrator import create_analysis_job
+from app.services.vision_inference import local_model_available
 from app.team_agents.vision.quality import check_quality
 
 router = APIRouter()
@@ -108,7 +109,11 @@ def public_config():
         "source_registry_version": settings.source_registry_version,
         "photo_limit_bytes": settings.max_upload_bytes,
         "max_photos": settings.max_images_per_assessment,
-        "vision_mode": "private_self_hosted" if settings.vision_inference_url else "quality_gate_only_no_model",
+        "vision_mode": (
+            "private_self_hosted"
+            if settings.vision_inference_url
+            else ("local_onnx_model" if local_model_available() else "quality_gate_only_no_model")
+        ),
         "market_mode": "farmer_reported_only_until_AMIS_API_contract_is_verified",
         "retention_hours": settings.image_retention_hours,
         "safety_notice": "Screening and decision support only; not a confirmed diagnosis or an irrigation or chemical instruction.",

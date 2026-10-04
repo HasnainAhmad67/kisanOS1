@@ -22,6 +22,7 @@ from app.agents import vision as vision_adapter
 from app.agents.crop import assess_crop
 from app.core.sources import source_registry
 from app.schemas import AgentResult
+from app.services import vision_inference as vi
 from app.services.vision_inference import MISSING_ARTIFACTS_REASON, predict_locally
 from app.team_agents.vision.quality import check_quality
 
@@ -118,6 +119,17 @@ def _enable_remote(monkeypatch, payload) -> None:
     monkeypatch.setattr(vision_adapter.httpx, "AsyncClient", _fake_async_client(payload))
 
 
+def _no_local_model(monkeypatch, tmp_path) -> None:
+    """Point the local loader at an empty directory.
+
+    Real artifacts ship in backend/models/wheat_vision/; these fallback tests
+    exercise the documented abstention path, so they must simulate a
+    deployment where the artifacts were not provided.
+    """
+    monkeypatch.setenv("VISION_MODEL_DIR", str(tmp_path))
+    vi._reset_loader_cache()
+
+
 def _dump(result: AgentResult) -> str:
     return json.dumps(result.model_dump(mode="json"), ensure_ascii=False)
 
@@ -135,7 +147,8 @@ def _safe_payload(**overrides) -> dict:
 
 
 # --------------------------------------------------------------------- tests
-def test_not_assessed_when_inference_url_is_empty(monkeypatch):
+def test_not_assessed_when_inference_url_is_empty(monkeypatch, tmp_path):
+    _no_local_model(monkeypatch, tmp_path)
     monkeypatch.setattr(vision_adapter, "get_settings", lambda: _settings(None))
     result = asyncio.run(
         vision_adapter.analyze_images(AID, _crop_intake(), [_record(_leaf_jpeg())])
@@ -179,8 +192,10 @@ def test_low_quality_image_triggers_retake_not_assessed(monkeypatch):
     assert "no_visual_analysis_performed" in result.safety_flags
 
 
-def test_no_crash_when_model_artifacts_are_missing(monkeypatch):
-    # The interface itself abstains with a documented reason (no loader, no files).
+def test_no_crash_when_model_artifacts_are_missing(monkeypatch, tmp_path):
+    # The interface itself abstains with a documented reason (no artifacts
+    # in the configured model directory).
+    _no_local_model(monkeypatch, tmp_path)
     payload, reason = predict_locally([_leaf_jpeg()], _crop_intake())
     assert payload is None
     assert reason == MISSING_ARTIFACTS_REASON
@@ -194,7 +209,8 @@ def test_no_crash_when_model_artifacts_are_missing(monkeypatch):
     assert without_photos.status == "not_assessed"
 
 
-def test_crop_continues_when_vision_is_not_assessed(monkeypatch):
+def test_crop_continues_when_vision_is_not_assessed(monkeypatch, tmp_path):
+    _no_local_model(monkeypatch, tmp_path)
     monkeypatch.setattr(vision_adapter, "get_settings", lambda: _settings(None))
     vision_result = asyncio.run(
         vision_adapter.analyze_images(AID, _crop_intake(), [_record(_leaf_jpeg())])
@@ -263,8 +279,9 @@ def test_non_wheat_crop_is_rejected_or_flagged(monkeypatch):
     assert "wheat_scope_gate" in missing.safety_flags
 
 
-def test_no_fabricated_sources_or_model_claims(monkeypatch):
+def test_no_fabricated_sources_or_model_claims(monkeypatch, tmp_path):
     # Fallback path: no sources, no URLs, no model claims.
+    _no_local_model(monkeypatch, tmp_path)
     monkeypatch.setattr(vision_adapter, "get_settings", lambda: _settings(None))
     fallback = asyncio.run(vision_adapter.analyze_images(AID, _crop_intake(), [_record(_leaf_jpeg())]))
     assert fallback.sources == []

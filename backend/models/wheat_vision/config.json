@@ -1,0 +1,24 @@
+{
+  "id2label": {
+    "0": "Corn___Common_Rust",
+    "1": "Corn___Gray_Leaf_Spot",
+    "2": "Corn___Healthy",
+    "3": "Invalid",
+    "4": "Potato___Early_Blight",
+    "5": "Potato___Healthy",
+    "6": "Potato___Late_Blight",
+    "7": "Rice___Brown_Spot",
+    "8": "Rice___Healthy",
+    "9": "Rice___Leaf_Blast",
+    "10": "Wheat___Brown_Rust",
+    "11": "Wheat___Healthy",
+    "12": "Wheat___Yellow_Rust"
+  },
+  "model_file": "crop_leaf_diseases_vit.onnx",
+  "image_size": 224,
+  "image_mean": [0.5, 0.5, 0.5],
+  "image_std": [0.5, 0.5, 0.5],
+  "rescale_factor": 0.00392156862745098,
+  "resample": 2,
+  "note": "id2label and preprocessing values are copied from the base model's config.json and preprocessor_config.json on Hugging Face (see hf_config_source.json / preprocessor_config.json in this directory for the verbatim downloads). The ONNX graph input is [batch, 3, 224, 224] float32 (NCHW), so normalization happens here: pixel/255, then (x - mean) / std."
+}

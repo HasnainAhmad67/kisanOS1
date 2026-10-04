@@ -1,0 +1,54 @@
+{
+  "name": "crop_leaf_diseases_vit (ONNX export of a ViT-tiny-patch16-224 crop-leaf classifier)",
+  "version": "wheat-vision-1.0.0+onnx@72c3499e0035",
+  "url": "https://huggingface.co/wambugu71/crop_leaf_diseases_vit_onnx",
+  "base_model_url": "https://huggingface.co/wambugu71/crop_leaf_diseases_vit",
+  "publisher": "Wambugu Kinyua (Hugging Face user wambugu71)",
+  "license": "Apache-2.0",
+  "license_notes": "The base model card body states 'License: Apache 2.0' (the KisanOS task assignment cites the same). The Hugging Face repository metadata for BOTH the base and the ONNX repo is tagged 'license: mit'. The conflict exists upstream and is recorded here as-is; KisanOS does not resolve it. Both are permissive licenses.",
+  "source_status": "unverified",
+  "source_status_notes": "Artifact provenance is pinned below (commit + SHA-256). The publisher's reported evaluation (98% accuracy) has NOT been validated by KisanOS on local field photos; all outputs are treated as uncalibrated visible-sign evidence only.",
+  "retrieved_at": "2026-10-04",
+  "retrieved_commit": {
+    "onnx_repo": "72c3499e00355c651b534bd5eb8b90f35f015da4",
+    "base_repo": "7d5b32bcd6f83a2f57e7e0346358fad276296877"
+  },
+  "files": [
+    {
+      "name": "crop_leaf_diseases_vit.onnx",
+      "bytes": 22301835,
+      "sha256": "3cb2ede8723dcbcd70db7d5bb99cc0d61466c304b2c91b26f2d0d54db9fb75f3"
+    },
+    {
+      "name": "hf_config_source.json",
+      "bytes": 1428,
+      "sha256": "f034b843233d377044663dedf8269549b52a89f8e44928c997638e0b2511f6ea"
+    },
+    {
+      "name": "preprocessor_config.json",
+      "bytes": 325,
+      "sha256": "a34861a24e781942424ad790b82bc99348404a2e64ea882de88c40905851698d"
+    }
+  ],
+  "architecture": "ViTForImageClassification (ViT-tiny-patch16-224): 12 layers, hidden size 192, 3 attention heads, patch size 16, 5,526,925 parameters, 13 output classes",
+  "format": {
+    "container": "ONNX",
+    "producer": "pytorch",
+    "input": "pixel_values [batch, 3, 224, 224] float32 (NCHW)",
+    "output": "output [batch, 13] float32 logits",
+    "quantization": "NOT quantized: the file is full float32 (22,301,835 bytes ~= 5,526,925 params x 4 bytes) and contains no QuantizeLinear/DequantizeLinear ops. The ONNX repo is titled as a quantized model and its README lists a crop_leaf_diseases_vit.quant.onnx INT8 file, but that file is not present in the repository; the only model file is the pre-quantization original, as the README's own file list says. Recorded as observed on 2026-10-04."
+  },
+  "preprocessing": {
+    "resize": "224x224 (bilinear, resample=2)",
+    "rescale": "pixel / 255",
+    "normalize": "(x - 0.5) / 0.5 per channel (mean=[0.5,0.5,0.5], std=[0.5,0.5,0.5])",
+    "source": "base model preprocessor_config.json (ViTImageProcessor)"
+  },
+  "wheat_classes": {
+    "10": "Wheat___Brown_Rust",
+    "11": "Wheat___Healthy",
+    "12": "Wheat___Yellow_Rust"
+  },
+  "mapping_rules": "Only wheat classes map to KisanOS visible-sign classes (label_map.json). Every other model output (Corn/Potato/Rice/Invalid) is treated as 'not_wheat' and the Vision gateway abstains. Outputs describe visible signs only, never a diagnosis, cause, or treatment.",
+  "usage_scope": "KisanOS Vision Agent local inference for wheat leaf photos only; outputs feed visible findings that flow to the Crop Agent and Farm Advisor as uncalibrated image evidence."
+}
