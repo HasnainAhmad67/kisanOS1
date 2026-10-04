@@ -1,0 +1,85 @@
+/**
+ * KisanOS design tokens (PRD palette).
+ *
+ * Contrast (WCAG AA) notes — all text pairings verified against
+ * --color-surface #F7F5EF (L≈0.905):
+ *   charcoal #1F2933  ≈ 15:1  ✓ normal text
+ *   field green #1F5E3B ≈ 7:1  ✓ normal text / white-on-green ✓
+ *   soil brown #7A573A ≈ 5.8:1 ✓ normal text
+ *   evidence blue #2F5D8C ≈ 6.2:1 ✓ normal text
+ *   deep red #A33A2B  ≈ 6.0:1  ✓ normal text
+ *   amber #B7791F     ≈ 3.3:1  → large text / borders / icons only;
+ *                                use --color-attention-text #8A5A0B (≈5.3:1)
+ *                                whenever amber carries normal-size text.
+ */
+
+:root {
+  /* Palette (PRD) */
+  --color-primary: #1f5e3b; /* Field green — primary actions */
+  --color-primary-strong: #17492e; /* pressed/hover */
+  --color-on-primary: #ffffff;
+  --color-secondary: #7a573a; /* Soil brown — secondary accent */
+  --color-surface: #f7f5ef; /* Warm off-white — main surface */
+  --color-surface-raised: #ffffff; /* cards, inputs */
+  --color-text: #1f2933; /* Charcoal — primary text */
+  --color-text-muted: #52606d; /* secondary text (≈7:1 on surface) */
+  --color-attention: #b7791f; /* Amber — attention (accents/borders) */
+  --color-attention-text: #8a5a0b; /* AA-safe amber for normal text */
+  --color-safety: #a33a2b; /* Deep red — safety / expert review */
+  --color-info: #2f5d8c; /* Evidence blue — sources / info */
+  --color-border: #d9d5c9;
+  --color-focus: #2f5d8c;
+
+  /* Status tints (badge backgrounds; text stays the base colour) */
+  --tint-complete: color-mix(in srgb, var(--color-primary) 14%, white);
+  --tint-partial: color-mix(in srgb, var(--color-attention) 16%, white);
+  --tint-info: color-mix(in srgb, var(--color-info) 14%, white);
+  --tint-neutral: color-mix(in srgb, var(--color-text) 10%, white);
+  --tint-safety: color-mix(in srgb, var(--color-safety) 14%, white);
+
+  /* Spacing scale (4px base, mobile-first) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  /* Shape */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  /* Typography — Urdu needs a Nastaliq fallback when the locale is 'ur' */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --font-urdu: "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", "Nafees Nastaleeq",
+    var(--font-sans);
+  --text-sm: 0.875rem;
+  --text-base: 1rem; /* 16px: prevents mobile zoom-on-focus */
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --line-tight: 1.25;
+  --line-normal: 1.55;
+
+  /* Interaction */
+  --touch-min: 44px; /* WCAG 2.5.5 AAA target size / PRD minimum */
+  --focus-ring: 0 0 0 3px var(--color-focus);
+  --shadow-card: 0 1px 3px rgb(31 41 51 / 0.08),
+    0 4px 14px rgb(31 41 51 / 0.06);
+
+  /* Layout */
+  --content-max: 40rem; /* one-column small-screen layout */
+}
+
+/* Urdu RTL: logical properties throughout mean flipping direction is enough. */
+[dir="rtl"] {
+  font-family: var(--font-urdu);
+}
+
+[dir="rtl"] body,
+:lang(ur) body {
+  font-family: var(--font-urdu);
+}

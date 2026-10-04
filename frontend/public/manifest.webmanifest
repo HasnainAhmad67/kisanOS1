@@ -1,0 +1,21 @@
+{
+  "name": "KisanOS — wheat field checks",
+  "short_name": "KisanOS",
+  "description": "Mobile-first wheat crop screening for the Bahawalpur pilot. Screening support only.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F5EF",
+  "theme_color": "#1F5E3B",
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
