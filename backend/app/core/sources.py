@@ -29,6 +29,18 @@ def source_registry() -> dict:
                 "claims": ["CRI stage context only; no Bahawalpur schedule, timing, amount, or frequency"],
             },
             {
+                "id": "crop-rules",
+                "title": "KisanOS deterministic wheat screening rules (backend Crop adapter)",
+                "url": None,
+                "publisher": "KisanOS backend",
+                "geography": "Bahawalpur pilot; not locally validated",
+                "evidence_type": "rule-based screening",
+                "source_status": "unverified",
+                "claims": [
+                    "Hypothesis language and farmer-answerable field checks only; no externally verified Crop agronomy source record yet; pending local agronomist review"
+                ],
+            },
+            {
                 "id": "vision-model",
                 "title": "Configured self-hosted model",
                 "url": None,
