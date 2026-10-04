@@ -82,7 +82,7 @@ export const en = {
   "farm.areaError": "Select your pilot area.",
   "farm.dateError": "Enter the last irrigation date, or choose “Not sure”.",
   "farm.configWarn":
-    "Live configuration unavailable — the area list may be out of date.",
+    "Live configuration unavailable — using the saved pilot-area list.",
 
   /* -------------------------------------------------- growth stages */
   "stage.emergence": "Emergence",

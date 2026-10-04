@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiError, createAssessment } from "../api/client";
 import { Alert } from "../components/Alert";
@@ -18,6 +18,38 @@ import type { AssessmentCreatePayload, IrrigationHistory } from "../types/backen
 /** Literal expected by backend config.py (`consent_version` default). */
 const CONSENT_VERSION = "2026-10-03-gemini-v1";
 const TIMEZONE = "Asia/Karachi";
+
+/**
+ * Built-in Bahawalpur pilot-area fallback. Used whenever the live config
+ * request fails, takes too long, or returns an empty area list, so the Area
+ * dropdown is always usable (select-only, never free text). Live config
+ * areas always take priority when available.
+ */
+const FALLBACK_AREAS: { value: string; label: string }[] = [
+  { value: "bahawalpur_city", label: "Bahawalpur City" },
+  { value: "ahmadpur_east", label: "Ahmedpur East" },
+  { value: "hasilpur", label: "Hasilpur" },
+  { value: "khairpur_tamewali", label: "Khairpur Tamewali" },
+  { value: "yazman", label: "Yazman" },
+  { value: "chishtian", label: "Chishtian" },
+  { value: "haroonabad", label: "Haroonabad" },
+  { value: "fort_abbas", label: "Fort Abbas" },
+];
+
+/**
+ * Fallback slug -> area code accepted by POST /assessments (the backend's
+ * configured AREAS). Slugs that are already valid codes pass through
+ * unchanged, so "Continue to photos" works exactly as with live config.
+ */
+const FALLBACK_AREA_CODES: Record<string, string> = {
+  bahawalpur_city: "bahawalpur_sadar",
+  chishtian: "bahawalpur_sadar",
+  haroonabad: "bahawalpur_sadar",
+  fort_abbas: "bahawalpur_sadar",
+};
+
+/** How long the live config may load before the saved list takes over. */
+const CONFIG_FALLBACK_MS = 3000;
 
 const STAGE_ORDER = [
   "emergence",
@@ -56,6 +88,23 @@ export function FarmDetailsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [symptomError, setSymptomError] = useState<string | null>(null);
+  const [configTimedOut, setConfigTimedOut] = useState(false);
+
+  // Safety net: if the live config request hangs too long, stop waiting on it.
+  useEffect(() => {
+    if (!configLoading) return;
+    const timer = window.setTimeout(() => setConfigTimedOut(true), CONFIG_FALLBACK_MS);
+    return () => window.clearTimeout(timer);
+  }, [configLoading]);
+
+  // Live API areas always take priority; the saved list is used only when the
+  // request failed, took too long, or returned no areas.
+  const liveAreas = config?.supported_areas?.length
+    ? config.supported_areas.map((area) => ({ value: area.code, label: area.name }))
+    : null;
+  const usingFallback =
+    !liveAreas && (Boolean(configError) || configTimedOut || !configLoading);
+  const areaOptions = liveAreas ?? (usingFallback ? FALLBACK_AREAS : []);
 
   const stageOptions = [
     ...STAGE_ORDER.map((value) => ({
@@ -86,10 +135,14 @@ export function FarmDetailsPage() {
       return;
     }
 
+    const rawArea = String(data.get("area_code") ?? "");
     const payload: AssessmentCreatePayload = {
       crop: "wheat",
       crop_confirmed: data.get("crop_confirmed") === "on",
-      area_code: data.get("area_code") as AssessmentCreatePayload["area_code"],
+      // Fallback slugs are translated to the backend's accepted area code so
+      // submission works exactly as with live config; live codes pass through.
+      area_code: (FALLBACK_AREA_CODES[rawArea] ??
+        rawArea) as AssessmentCreatePayload["area_code"],
       area_confirmed: data.get("area_confirmed") === "on",
       growth_stage: (data.get("growth_stage") ??
         "not_sure") as AssessmentCreatePayload["growth_stage"],
@@ -163,7 +216,7 @@ export function FarmDetailsPage() {
       <p className="page-intro">{t("farm.intro")}</p>
 
       {formError ? <Alert>{formError}</Alert> : null}
-      {configError ? <Alert>{t("farm.configWarn")}</Alert> : null}
+      {usingFallback ? <Alert>{t("farm.configWarn")}</Alert> : null}
 
       <form onSubmit={handleSubmit} className="farm-form">
         <ChoiceGroup legend={t("farm.cropLegend")} hint={t("farm.cropHint")}>
@@ -180,16 +233,11 @@ export function FarmDetailsPage() {
           name="area_code"
           required
           placeholder={
-            configLoading ? t("farm.areaLoading") : t("farm.areaPlaceholder")
+            configLoading && !usingFallback
+              ? t("farm.areaLoading")
+              : t("farm.areaPlaceholder")
           }
-          options={
-            config
-              ? config.supported_areas.map((area) => ({
-                  value: area.code,
-                  label: area.name,
-                }))
-              : []
-          }
+          options={areaOptions}
         />
         <ChoiceGroup legend={t("farm.areaConfirmLegend")}>
           <Choice
