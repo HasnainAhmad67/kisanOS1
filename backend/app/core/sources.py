@@ -84,6 +84,30 @@ def source_registry() -> dict:
                 "source_status": "unverified",
                 "claims": ["Official current quotes are not enabled because a stable API contract was not verified"],
             },
+            {
+                "id": "farm-advisor-policy",
+                "title": "KisanOS deterministic Farm Advisor policy",
+                "url": None,
+                "publisher": "KisanOS backend",
+                "geography": "Bahawalpur pilot / applicability limited",
+                "evidence_type": "deterministic decision-support policy",
+                "source_status": "not_applicable",
+                "claims": [
+                    "Status ladder, check prioritization, conflict surfacing and safety banner only; the Farm Advisor introduces no agronomic facts of its own"
+                ],
+            },
+            {
+                "id": "gemini-narration",
+                "title": "Gemini farmer-language explanation layer (optional, consent-gated)",
+                "url": None,
+                "publisher": "Google Gemini API via an operator-configured key",
+                "geography": "Not a geographic source; narration only",
+                "evidence_type": "AI-generated narration of the deterministic Farm Plan",
+                "source_status": "not_applicable",
+                "claims": [
+                    "Rephrases existing plan text only; never a source of agronomic facts and cannot alter the Farm Plan"
+                ],
+            },
         ],
         "disclaimer": "Registry references do not establish local agronomic accuracy. Review source terms, publication dates, geography, and claims before deployment.",
     }

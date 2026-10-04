@@ -186,6 +186,7 @@ class FarmCheck(StrictModel):
     title: str
     how_to_check: str
     why: str
+    what_to_observe: str = Field(min_length=1, max_length=300)
     evidence_labels: list[str] = Field(default_factory=list)
 
 

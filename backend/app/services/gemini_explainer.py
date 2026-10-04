@@ -7,9 +7,11 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.core.config import get_settings
+from app.core.text_guard import find_unsafe
 from app.schemas import AgentResult, AIExplanation, FarmPlan, GeminiNarration
 from google import genai
 from google.genai import types
+from pydantic import ValidationError
 
 logger = logging.getLogger("kisanos.gemini_explainer")
 PROMPT_VERSION = "gemini-explainer-v1"
@@ -160,6 +162,17 @@ async def explain_farm_plan(
         if not summary or not evidence or any(not item for item in explanations):
             return _unavailable(locale, "invalid_output")
 
+        # Output safety scan: reject actionable/affirmative unsafe wording
+        # (chemicals, doses, imperative irrigation, diagnosis claims,
+        # guarantees, trading) even though the prompt forbids it too.
+        unsafe = find_unsafe(" ".join([summary, evidence, *explanations]))
+        if unsafe:
+            logger.warning(
+                "Gemini narration rejected by safety scan",
+                extra={"unsafe_categories": ",".join(unsafe)},
+            )
+            return _unavailable(locale, "invalid_output")
+
         safe_locale = locale if locale in {"en", "ur", "roman_ur"} else "en"
         return AIExplanation(
             status="complete",
@@ -174,6 +187,12 @@ async def explain_farm_plan(
     except TimeoutError:
         logger.warning("Gemini explanation timed out")
         return _unavailable(locale, "timeout")
+    except (ValidationError, json.JSONDecodeError) as exc:
+        logger.warning(
+            "Gemini narration failed schema validation",
+            extra={"error_type": type(exc).__name__},
+        )
+        return _unavailable(locale, "invalid_output")
     except Exception as exc:  # noqa: BLE001 - optional narration; preserve the FarmPlan on failures.
         logger.warning(
             "Gemini explanation unavailable", extra={"error_type": type(exc).__name__}
