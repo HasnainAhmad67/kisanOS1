@@ -11,11 +11,11 @@ const STYLES: Record<BadgeStatus, string> = {
   not_assessed: "badge--neutral",
   unsupported: "badge--neutral",
   error: "badge--safety",
-  /* FarmPlan.status */
+  /* FarmPlan.status — demo color code: green / amber / red */
   insufficient_information: "badge--neutral",
-  monitor: "badge--info",
-  field_inspection_recommended: "badge--partial",
-  expert_review_recommended: "badge--safety",
+  monitor: "badge--complete", // green
+  field_inspection_recommended: "badge--partial", // amber
+  expert_review_recommended: "badge--safety", // red
   /* shell placeholder — not a backend status */
   pending: "badge--neutral",
 };
@@ -25,6 +25,17 @@ function label(status: BadgeStatus): string {
   return status.replace(/_/g, " ");
 }
 
-export function StatusBadge({ status }: { status: BadgeStatus }) {
-  return <span className={`badge ${STYLES[status]}`}>{label(status)}</span>;
+export function StatusBadge({
+  status,
+  prominent = false,
+}: {
+  status: BadgeStatus;
+  /** Larger, presentation-weight badge (used for the Farm Plan status). */
+  prominent?: boolean;
+}) {
+  return (
+    <span className={`badge ${STYLES[status]}${prominent ? " badge--lg" : ""}`}>
+      {label(status)}
+    </span>
+  );
 }

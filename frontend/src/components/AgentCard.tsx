@@ -9,6 +9,15 @@ const TITLES: Record<AgentId, string> = {
   market: "Market",
 };
 
+/** Presentation icons — decorative only (screen readers get the title). */
+const ICONS: Record<AgentId, string> = {
+  weather: "☁️",
+  water: "💧",
+  crop: "🌱",
+  vision: "👁️",
+  market: "💰",
+};
+
 interface AgentCardProps {
   agentId: AgentId;
   /** Present once results are loaded; undefined keeps the shell placeholder. */
@@ -17,9 +26,15 @@ interface AgentCardProps {
 
 export function AgentCard({ agentId, result }: AgentCardProps) {
   return (
-    <section className="card agent-card" aria-labelledby={`agent-${agentId}`}>
+    <section
+      className={`card agent-card agent-card--${agentId}`}
+      aria-labelledby={`agent-${agentId}`}
+    >
       <div className="row" style={{ justifyContent: "space-between" }}>
         <h3 id={`agent-${agentId}`} style={{ margin: 0 }}>
+          <span className="agent-card__icon" aria-hidden="true">
+            {ICONS[agentId]}
+          </span>
           {TITLES[agentId]}
         </h3>
         <StatusBadge status={result?.status ?? "pending"} />
@@ -86,7 +101,8 @@ export function AgentCard({ agentId, result }: AgentCardProps) {
         </>
       ) : (
         <p className="empty-note">
-          Not returned by this analysis — no data is shown for this agent.
+          🌾 Nothing from this agent yet — no data has been returned for this
+          check, so nothing is shown.
         </p>
       )}
     </section>

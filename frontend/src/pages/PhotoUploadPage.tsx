@@ -146,7 +146,10 @@ export function PhotoUploadPage() {
 
   return (
     <div className="stack">
-      <h1>Photos</h1>
+      <h1>
+        Photo Upload Karein
+        <span className="label-en">Upload photos (optional)</span>
+      </h1>
       <p className="page-intro">
         Add a sharp, well-lit close-up of an affected leaf — JPEG or PNG, up to{" "}
         {maxPhotos} photos. Photos are optional: you can continue without
@@ -171,7 +174,8 @@ export function PhotoUploadPage() {
         </div>
         {photos.length === 0 ? (
           <p className="empty-note">
-            No photos selected — that is OK. You can continue to analysis.
+            📷 No photos yet — that is OK. You can continue without photos and
+            still get your farm plan.
           </p>
         ) : (
           <ul className="upload-list">
@@ -256,7 +260,7 @@ export function PhotoUploadPage() {
 
       <div className="stack">
         <Button block onClick={() => navigate("/analysis")}>
-          Continue to Analysis
+          Agay barhein — Continue to Analysis
         </Button>
         <LinkButton to="/farm-details" variant="secondary" block>
           Back

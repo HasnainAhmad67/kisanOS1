@@ -547,12 +547,22 @@ textarea.field__control {
 }
 
 .plan-banner {
-  background: var(--tint-safety);
+  background: var(--color-safety);
+  color: var(--color-on-primary);
   border: 1px solid var(--color-safety);
   border-radius: var(--radius-sm);
-  padding: var(--space-3);
-  font-weight: 600;
+  padding: var(--space-3) var(--space-4);
+  font-weight: 700;
+  font-size: var(--text-base);
+  line-height: var(--line-tight);
   margin-block: 0 var(--space-3);
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.plan-banner::before {
+  content: "⚠️";
 }
 
 .plan-checks {
@@ -564,4 +574,88 @@ textarea.field__control {
 
 .plan-checks li {
   padding-inline-start: var(--space-1);
+}
+
+/* ------------------------------------------------- demo presentation */
+
+/* Roman Urdu primary label with English fallback (secondary). */
+.label-en {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  line-height: var(--line-tight);
+}
+
+.label-inline {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+/* Per-agent accent: colored top border + icon tint. */
+.agent-card {
+  border-block-start: 4px solid var(--color-border);
+}
+
+.agent-card--weather {
+  border-block-start-color: var(--color-info);
+}
+
+.agent-card--water {
+  border-block-start-color: #3b82c4; /* brighter water blue */
+}
+
+.agent-card--crop {
+  border-block-start-color: var(--color-primary);
+}
+
+.agent-card--vision {
+  border-block-start-color: #7c3aed; /* purple */
+}
+
+.agent-card--market {
+  border-block-start-color: var(--color-attention);
+}
+
+.agent-card__icon {
+  margin-inline-end: var(--space-2);
+  font-style: normal;
+}
+
+/* Farm plan status badge — presentation weight. */
+.badge--lg {
+  font-size: var(--text-base);
+  font-weight: 700;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 2px solid currentColor;
+}
+
+/* Simple loading spinner (indeterminate, no fake percentage). */
+.spinner {
+  display: inline-block;
+  inline-size: 1.1em;
+  block-size: 1.1em;
+  margin-inline-end: var(--space-2);
+  border: 3px solid var(--color-border);
+  border-block-start-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spinner-rotate 0.8s linear infinite;
+  vertical-align: -0.15em;
+}
+
+@keyframes spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-line {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
 }

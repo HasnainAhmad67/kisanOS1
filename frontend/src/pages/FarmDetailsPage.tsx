@@ -137,7 +137,10 @@ export function FarmDetailsPage() {
 
   return (
     <div className="stack">
-      <h1>Farm details</h1>
+      <h1>
+        Farm ki Tafseel
+        <span className="label-en">Farm details</span>
+      </h1>
       <p className="page-intro">
         Fields marked <span className="field__required">*</span> are required.
         Everything else can be “not sure”.
@@ -324,7 +327,9 @@ export function FarmDetailsPage() {
 
         <div className="stack" style={{ marginBlockStart: "var(--space-5)" }}>
           <Button type="submit" block disabled={submitting || configLoading}>
-            {submitting ? "Saving…" : "Continue to photos"}
+            {submitting
+              ? "Saving…"
+              : "Photo Upload Karein — Continue to photos"}
           </Button>
           <LinkButton to="/" variant="secondary" block>
             Back

@@ -76,8 +76,14 @@ export function ResultsPage() {
   if (loading) {
     return (
       <div className="stack">
-        <h1>Your results</h1>
-        <p className="empty-note">Loading results…</p>
+        <h1>
+          Nateejay
+          <span className="label-en">Your results</span>
+        </h1>
+        <p className="loading-line">
+          <span className="spinner" aria-hidden="true" />
+          Nateejay aa rahe hain… Loading results
+        </p>
       </div>
     );
   }
@@ -85,13 +91,19 @@ export function ResultsPage() {
   if (error) {
     return (
       <div className="stack">
-        <h1>Your results</h1>
+        <h1>
+          Nateejay
+          <span className="label-en">Your results</span>
+        </h1>
         <Alert>{error}</Alert>
+        <p className="empty-note">
+          🌾 Results nahi milay — check your connection and try once more.
+        </p>
         <Button block onClick={() => void load()}>
           Try again
         </Button>
         <Button block variant="secondary" onClick={startNewCheck}>
-          Start New Check
+          Naya Check — Start New Check
         </Button>
       </div>
     );
@@ -101,23 +113,26 @@ export function ResultsPage() {
     const failed = data.status === "failed";
     return (
       <div className="stack">
-        <h1>Your results</h1>
+        <h1>
+          Nateejay
+          <span className="label-en">Your results</span>
+        </h1>
         {failed ? (
           <Alert>
-            The analysis did not finish
-            {data.status ? ` (job ${data.status})` : ""}. Retry it from the
-            analysis screen.
+            Analysis mukammal nahi ho saka (the analysis did not finish).
+            Retry it from the analysis screen.
           </Alert>
         ) : (
           <p className="page-intro">
-            Analysis is still running — results appear once the job finishes.
+            ⏳ Analysis abhi chal raha hai — Nateejay yahan dikhenge jab job
+            mukammal ho jaye (results appear once the job finishes).
           </p>
         )}
         <LinkButton to="/analysis" block>
           {failed ? "Retry analysis" : "Back to analysis"}
         </LinkButton>
         <Button block variant="secondary" onClick={startNewCheck}>
-          Start New Check
+          Naya Check — Start New Check
         </Button>
       </div>
     );
@@ -132,7 +147,10 @@ export function ResultsPage() {
 
   return (
     <div className="stack">
-      <h1>Your results</h1>
+      <h1>
+        Nateejay
+        <span className="label-en">Your results</span>
+      </h1>
       <p className="page-intro">
         Screening support only — a plan below is not a confirmed diagnosis.
       </p>
@@ -154,11 +172,11 @@ export function ResultsPage() {
       </div>
 
       {plan ? (
-        <Card tone="safety" title="Farm plan">
+        <Card tone="safety" title="Farm Plan — Aapka Khet Plan">
           <p className="plan-banner">{plan.safety_banner}</p>
           <div className="row" style={{ justifyContent: "space-between" }}>
             <span className="card__meta">Field status</span>
-            <StatusBadge status={plan.status} />
+            <StatusBadge status={plan.status} prominent />
           </div>
           <p style={{ marginBlockStart: "var(--space-3)" }}>{plan.rationale}</p>
 
@@ -217,10 +235,11 @@ export function ResultsPage() {
           <p className="card__meta">Policy {plan.policy_version}</p>
         </Card>
       ) : (
-        <Card tone="safety" title="Farm plan">
+        <Card tone="safety" title="Farm Plan — Aapka Khet Plan">
           <p className="empty-note" style={{ margin: 0 }}>
-            No farm plan was produced for this check — the analysis may have
-            failed or been interrupted. Retry the analysis to build a plan.
+            🌾 Koi plan nahi bana — no farm plan was produced for this check
+            (the analysis may have failed or been interrupted). Retry the
+            analysis to build a plan.
           </p>
         </Card>
       )}
@@ -247,7 +266,7 @@ export function ResultsPage() {
           Record a follow-up
         </LinkButton>
         <Button block variant="secondary" onClick={startNewCheck}>
-          Start New Check
+          Naya Check — Start New Check
         </Button>
       </div>
     </div>

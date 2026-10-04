@@ -125,6 +125,12 @@ export function AnalysisProgressPage() {
         title="Progress"
         meta={job ? job.state : undefined}
       >
+        {job && !TERMINAL.includes(job.state) ? (
+          <p className="loading-line">
+            <span className="spinner" aria-hidden="true" />
+            Live backend updates every second…
+          </p>
+        ) : null}
         {job ? (
           <>
             <div className="row" style={{ justifyContent: "space-between" }}>
@@ -191,11 +197,11 @@ export function AnalysisProgressPage() {
               ? "Starting…"
               : job
                 ? "Analysis running…"
-                : "Start Analysis"}
+                : "Analysis Shuru Karein — Start Analysis"}
           </Button>
         ) : (
           <Button block onClick={handleStart} disabled={starting}>
-            {starting ? "Retrying…" : "Retry Analysis"}
+            {starting ? "Retrying…" : "Dobara koshish — Retry Analysis"}
           </Button>
         )}
         <LinkButton to="/photos" variant="secondary" block>

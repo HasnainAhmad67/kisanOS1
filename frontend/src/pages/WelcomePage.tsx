@@ -7,7 +7,10 @@ export function WelcomePage() {
 
   return (
     <div className="stack">
-      <h1>New field check</h1>
+      <h1>
+        Naya Check
+        <span className="label-en">New field check</span>
+      </h1>
       <p className="page-intro">
         Tell us what you are seeing in your wheat field, add a couple of
         photos, and get a short plan of what to check next — in a few minutes.
@@ -44,7 +47,9 @@ export function WelcomePage() {
       ) : null}
 
       <div className="row">
-        <LinkButton to="/farm-details">Start a new check</LinkButton>
+        <LinkButton to="/farm-details">
+          Shuru Karein — Start a new check
+        </LinkButton>
       </div>
     </div>
   );
