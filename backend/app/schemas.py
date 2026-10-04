@@ -45,6 +45,9 @@ class FarmerMarketQuote(StrictModel):
     unit: Literal["PKR/100kg", "PKR/40kg", "PKR/tonne", "other"]
     observed_at: datetime
     note: str | None = Field(default=None, max_length=200)
+    # Explicit marker for demo/simulated quotes; such quotes are always tagged
+    # SIMULATED DEMO DATA by the Market Agent and never presented as live.
+    simulated: bool = False
 
     @field_validator("observed_at")
     @classmethod

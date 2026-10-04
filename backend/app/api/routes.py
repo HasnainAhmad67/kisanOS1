@@ -425,7 +425,7 @@ async def seed_demo():
         "assessment_id": assessment_id,
         "access_token": token,
         "job_id": job_id,
-        "demo_fixture": "SIMULATED INPUT SCENARIO — no simulated weather, market price, or vision finding is inserted.",
+        "demo_fixture": "SIMULATED INPUT SCENARIO (SIMULATED DEMO DATA) — no simulated weather, market price, or vision finding is inserted.",
         "status_url": f"/api/v1/jobs/{job_id}",
         "results_url": f"/api/v1/assessments/{assessment_id}/results",
     }

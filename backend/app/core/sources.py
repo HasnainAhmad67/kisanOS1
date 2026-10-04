@@ -63,6 +63,18 @@ def source_registry() -> dict:
                 "claims": ["Visible signs only; model card, revision and local evaluation required"],
             },
             {
+                "id": "farmer-market-quote",
+                "title": "Farmer-entered market quote (assessment intake)",
+                "url": None,
+                "publisher": "Farmer (entered via KisanOS)",
+                "geography": "Market named by the farmer; not independently verified",
+                "evidence_type": "user-supplied market quote",
+                "source_status": "farmer_reported",
+                "claims": [
+                    "Card-level Source on Market cards only; the quote may be stale or wrong and is never presented as official market data"
+                ],
+            },
+            {
                 "id": "amis",
                 "title": "Punjab Agriculture Marketing Information Service",
                 "url": None,

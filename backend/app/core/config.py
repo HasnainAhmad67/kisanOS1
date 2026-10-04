@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     vision_inference_url: str | None = None
     vision_inference_token: str | None = None
     market_adapter_url: str | None = None
+    # Freshness limit for farmer-entered quotes (older -> status "stale").
+    market_quote_stale_days: int = Field(default=7, ge=1, le=90)
     allow_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     demo_mode: bool = True
     source_registry_version: str = "2026-10-03.1"
