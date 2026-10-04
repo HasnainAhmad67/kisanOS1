@@ -1,44 +1,28 @@
-"""Pydantic models for the KisanOS mandatory agent JSON + the same checks the backend will run.
+"""Strict shared agent-envelope schema for the KisanOS Water Agent."""
 
-The format is FIXED by the team instructions - do not add, rename or retype fields.
-The only extra key allowed is the optional AI_ENHANCED section.
-"""
+from __future__ import annotations
+
 import re
 import uuid
 from datetime import datetime
-from typing import List, Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
 ISO_Z = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
-
-# Words that must never appear anywhere in the output (rule 4). Checked on every string.
-_UNSAFE_LATIN = re.compile(
+UNSAFE_TEXT = re.compile(
     r"\b(pesticides?|fungicides?|insecticides?|herbicides?|chemicals?|spray(?:ed|ing)?|doses?|dosage|"
-    r"fertili[sz]ers?|urea|dap|npk|potash|nitrogen|ml per|kg per|imidacloprid|propiconazole|tebuconazole|"
-    r"khaad|khad|dawai|dawa|keera\s?maar)\b", re.I)
-_UNSAFE_URDU = re.compile(r"(کیڑے\s?مار|سپرے|کھاد|زرعی دوا|دوائی|ڈوز)")
-# Invented irrigation amounts / durations are not allowed either (PRD: evidence + checks, no prescriptions).
-QUANTITY = re.compile(
-    r"\b\d+(?:\.\d+)?\s*(?:mm|cm|inch|inches|litres?|liters?|gallons?|cusecs?|acre[- ]?inch)\b"
-    r"|\b(?:irrigat\w*|water\w*|flood\w*)\s+(?:for\s+)?\d+\s*(?:hours?|hrs?|minutes?)\b", re.I)
+    r"fertili[sz]ers?|urea|dap|npk|potash|nitrogen|imidacloprid|propiconazole|tebuconazole|"
+    r"khaad|khad|dawai|dawa|keera\s?maar)\b|(?:کیڑے\s?مار|سپرے|کھاد|زرعی دوا|دوائی|ڈوز)",
+    re.IGNORECASE,
+)
 
 
-def find_unsafe(text: str):
-    """Return the first banned keyword found in text, or None."""
-    m = _UNSAFE_LATIN.search(text) or _UNSAFE_URDU.search(text)
-    return m.group(0) if m else None
+class StrictModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, str_strip_whitespace=True)
 
 
-def _iso(v: str) -> str:
-    if not ISO_Z.match(v):
-        raise ValueError("must look like 2026-10-03T12:00:00Z")
-    datetime.strptime(v, "%Y-%m-%dT%H:%M:%SZ")
-    return v
-
-
-class Source(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
+class Source(StrictModel):
     title: str
     url: str
     publisher: str
@@ -47,84 +31,85 @@ class Source(BaseModel):
 
     @field_validator("url")
     @classmethod
-    def _url(cls, v):
-        if not v.startswith(("http://", "https://")):
-            raise ValueError("url must start with http:// or https://")
-        return v
+    def require_http_url(cls, value: str) -> str:
+        if not value.startswith(("http://", "https://")):
+            raise ValueError("source URL must use HTTP or HTTPS")
+        return value
 
     @field_validator("retrieved_at")
     @classmethod
-    def _ts(cls, v):
-        return _iso(v)
+    def require_utc_timestamp(cls, value: str) -> str:
+        if not ISO_Z.fullmatch(value):
+            raise ValueError("retrieved_at must use UTC ISO-8601 ending in Z")
+        datetime.fromisoformat(value)
+        return value
 
 
-class AIEnhanced(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
-    urdu_summary: str
-    roman_urdu: str
-    audio_script_urdu: str
-    emoji_visual: str
-    farmer_explanation: str
-    priority_level: Literal["high", "medium", "low"]
-
-
-class AgentOutput(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
+class AgentOutput(StrictModel):
     agent_id: Literal["weather", "water", "vision", "crop", "market"]
     assessment_id: str
     status: Literal["complete", "partial", "unavailable", "error"]
     summary: str
-    observations: List[str]
-    possible_causes: List[str]
-    checks: List[str]
+    observations: list[str]
+    possible_causes: list[str]
+    checks: list[str]
     evidence_band: Literal["low", "medium", "high", "not_calibrated"]
     evidence_reason: str
-    sources: List[Source]
+    sources: list[Source]
     provider_or_model: str
     version: str
     created_at: str
-    safety_flags: List[str]
-    AI_ENHANCED: Optional[AIEnhanced] = None          # optional section
+    safety_flags: list[str]
 
     @field_validator("assessment_id")
     @classmethod
-    def _uuid(cls, v):
-        uuid.UUID(v)
-        return v
+    def require_uuid(cls, value: str) -> str:
+        uuid.UUID(value)
+        return value
 
     @field_validator("created_at")
     @classmethod
-    def _ts(cls, v):
-        return _iso(v)
+    def require_created_at_utc(cls, value: str) -> str:
+        if not ISO_Z.fullmatch(value):
+            raise ValueError("created_at must use UTC ISO-8601 ending in Z")
+        datetime.fromisoformat(value)
+        return value
 
-    @field_validator("summary")
+    @field_validator("summary", "evidence_reason")
     @classmethod
-    def _summary(cls, v):
-        if not v.strip():
-            raise ValueError("summary must not be empty")
-        return v
+    def require_nonempty_text(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("text must not be empty")
+        return value
 
 
-def _strings(obj, path=""):
-    if isinstance(obj, str):
-        yield path, obj
-    elif isinstance(obj, dict):
-        for k, v in obj.items():
-            yield from _strings(v, f"{path}.{k}" if path else str(k))
-    elif isinstance(obj, (list, tuple)):
-        for i, v in enumerate(obj):
-            yield from _strings(v, f"{path}[{i}]")
+def _all_strings(value):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            yield from _all_strings(key)
+            yield from _all_strings(item)
+    elif isinstance(value, (list, tuple)):
+        for item in value:
+            yield from _all_strings(item)
 
 
-def validate_output(data: dict) -> list:
-    """Backend-style check. Returns a list of problems ([] = passes)."""
-    problems = []
+def find_unsafe(text: str) -> str | None:
+    match = UNSAFE_TEXT.search(text)
+    return match.group(0) if match else None
+
+
+def validate_output(payload: dict) -> list[str]:
+    """Return validation problems; an empty list means the envelope is valid."""
+    problems: list[str] = []
     try:
-        AgentOutput.model_validate(data)
-    except ValidationError as e:
-        problems += [f"{'.'.join(str(p) for p in err['loc'])}: {err['msg']}" for err in e.errors()]
-    for path, s in _strings(data):
-        bad = find_unsafe(s)
-        if bad:
-            problems.append(f"{path}: banned keyword '{bad}'")
+        AgentOutput.model_validate(payload)
+    except ValidationError as exc:
+        problems.append(str(exc))
+    for text in _all_strings(payload):
+        unsafe = find_unsafe(text)
+        if unsafe:
+            problems.append(f"unsafe language is not allowed: {unsafe}")
+            break
     return problems

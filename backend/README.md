@@ -67,7 +67,7 @@ Use `X-Assessment-Token` on all assessment, photo, follow-up, results and job re
   "locale": "en",
   "timezone": "Asia/Karachi",
   "consent_given": true,
-  "consent_version": "2026-10-03"
+  "consent_version": "2026-10-03-gemini-v1"
 }
 ```
 
@@ -75,10 +75,10 @@ The supported area codes are returned by `GET /api/v1/config`. Unsupported crops
 
 ## Included team code and policy gates
 
-The original **Weather, Water and Vision agent packages** are included unchanged under `app/team_agents/` for traceability.
+The original **Weather and Vision agent packages** are included unchanged under `app/team_agents/` for traceability. `app/team_agents/water/` now contains the promoted **Water Agent v2.0.0** (copied from `agents/water/agents/water/`); its legacy v1.0 tests are quarantined under `app/team_agents/water/legacy_tests/` (skipped at collection).
 
 - **Weather**: reuses the Weather Agent's Bahawalpur location resolver and Open-Meteo fetch method. The backend deliberately does not call its `analyze()` output because its climate-risk thresholds, historical claims and fallback observations are not approved in the PRD. Only provider-reported weather values with timestamp, location granularity and freshness are normalized. If Open-Meteo fails, Weather is unavailable; no fabricated baseline is displayed.
-- **Water**: uses the backend's deterministic, conservative water-attention policy. The submitted agent's numeric day/rain/ET0/temperature thresholds and irrigation scheduling language are quarantined because the PRD excludes them pending local agronomist approval. Outputs can request a field soil/drainage check, monitor, or abstain—never direct irrigation.
+- **Water**: runs the canonical PRD-compliant Water Agent v2.0.0 (`app/team_agents/water/agent.py`, policy `kisanos-water-conservative-v2`) through the thin adapter `app/agents/water.py`. The connected Weather adapter's `data.current` / `data.daily_outlook` / `data.freshness` output is converted into Water's dated forecast-product panels by `app/services/weather_panel.py` without inventing values; stale, partial, unavailable or missing weather reaches Water as an explicit stale/unavailable context. Allowed outputs are `inspect_field`, `monitor`, `recheck_after_rain`, `insufficient_information` and `expert_review`—never an irrigation command, amount, duration, frequency, or any pesticide/fertilizer instruction. The legacy v1.0 day/DAS/ET0/temperature thresholds remain excluded pending local agronomist approval.
 - **Vision**: reuses the team's Pillow/NumPy quality gate, then only calls an operator-configured **private self-hosted** model endpoint. When none is configured, a quality-passing photo is marked `not_assessed`; the team's dummy/example result is intentionally never used. Gemini/Groq image routing is not enabled because the PRD says photos must not go to third-party inference APIs. The adapter accepts a bounded multipart request and a JSON object with `crop_detected: "wheat"`, `visible_findings: [{"class": "yellowing", "detail": "..."}]`, optional `confidence` (`low`/`medium`) and `model_version`. Unknown labels and missing/non-wheat crop results are rejected; unsafe diagnostic/action wording is rejected; confidence cannot exceed medium.
 - **Crop**: a deterministic wheat-only symptom screening adapter is included because no Crop Agent archive was attached. Farmer-reported and photo-visible observations remain separate; evidence is not a cause probability.
 - **Market**: an adapter is included because no Market Agent archive was attached. It shows a timestamped farmer-entered quote as unverified, or `Price unavailable`. No AMIS scraping or synthetic/live-looking price is provided because the PRD says no stable API contract was verified.
@@ -101,7 +101,7 @@ For PostgreSQL set `DATABASE_URL=postgresql+psycopg://...`. Set `ALLOW_ORIGINS` 
 pytest -q
 ```
 
-The tests cover scope/consent, authentication, provider outage behavior, policy invariants, photo privacy and async multi-agent completion. The bundled teammate tests are available under `app/team_agents/**/test_agent.py`; run with `pytest -q app/team_agents` after dependency installation. Some submitted research references and unvalidated model/service artifacts require owner review before production.
+The tests cover scope/consent, authentication, provider outage behavior, policy invariants, photo privacy, async multi-agent completion, and the Weather↔Water contract (`tests/test_weather_water_contract.py`: fresh weather is usable, stale/missing weather stays conservative, rain only yields `recheck_after_rain` without drainage risk). The bundled teammate tests are available under `app/team_agents/**/test_agent.py`; run with `pytest -q app/team_agents` after dependency installation. The legacy Water v1.0 tests under `app/team_agents/water/legacy_tests/` are quarantined and skipped because their day/DAS/ET0 threshold behavior was superseded by Water v2.0.0. Some submitted research references and unvalidated model/service artifacts require owner review before production.
 
 ## Important limitations
 

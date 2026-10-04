@@ -1,6 +1,26 @@
-"""Run:  python test_agent.py                       (from this agent folder)
-        python -m agents.water.test_agent            (from the kisanos/ folder)
-        pytest agents/water"""
+"""QUARANTINED LEGACY TESTS - Water Agent v1.0 (superseded, not executed).
+
+These tests assert the legacy Water v1.0 rule engine that used days-since-
+irrigation / DAS / ET0 / temperature / rainfall thresholds and "Irrigation
+status: ..." summaries. That behavior is NOT allowed by the PRD and this
+package (backend/app/team_agents/water/) now ships the PRD-compliant Water
+v2.0.0 implementation (agent.py + schema.py, copied from
+agents/water/agents/water/).
+
+The tests are kept unchanged for traceability but are skipped at collection
+time so they can never be mistaken for active coverage. The active Water
+v2.0.0 tests live in:
+    backend/tests/test_weather_water_contract.py
+    backend/tests/test_api_and_policy.py
+"""
+import pytest
+
+pytest.skip(
+    "quarantined legacy Water v1.0 tests; superseded by Water v2.0.0 in this package",
+    allow_module_level=True,
+)
+
+# ---- original v1.0 test module retained below for traceability ----
 import json
 import os
 import uuid

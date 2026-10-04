@@ -24,7 +24,7 @@ def _payload():
         "locale": "en",
         "timezone": "Asia/Karachi",
         "consent_given": True,
-        "consent_version": "2026-10-03",
+        "consent_version": "2026-10-03-gemini-v1",
     }
 
 

@@ -28,7 +28,7 @@ def _payload(**overrides):
         "locale": "en",
         "timezone": "Asia/Karachi",
         "consent_given": True,
-        "consent_version": "2026-10-03",
+        "consent_version": "2026-10-03-gemini-v1",
     }
     data.update(overrides)
     return data
@@ -95,17 +95,54 @@ def test_no_market_price_is_invented():
 
 
 def test_water_policy_never_issues_irrigation_instruction():
+    # Fresh weather envelope shaped like the connected Weather adapter's output,
+    # so the CRI path is actually reachable (Weather v3-style panel via
+    # app.services.weather_panel normalization).
+    fresh_weather = AgentResult(
+        assessment_id="00000000-0000-4000-8000-000000000001",
+        agent_id="weather",
+        status="complete",
+        summary="Weather values are provider-reported forecast-grid context.",
+        evidence_reason="Test weather envelope.",
+        provider_or_model="test",
+        version="test",
+        data={
+            "freshness": "fresh",
+            "daily_outlook": [
+                {
+                    "date": "2026-10-04",
+                    "temperature_max_c": 33.0,
+                    "temperature_min_c": 20.0,
+                    "precipitation_sum_mm": 0.0,
+                    "precipitation_probability_max_pct": 0,
+                }
+            ],
+        },
+    )
     result = assess_water(
         "00000000-0000-4000-8000-000000000001",
         {
+            "crop": "wheat",
+            "area_code": "bahawalpur_sadar",
             "growth_stage": "cri",
-            "soil_moisture": "not_sure",
-            "drainage": "not_sure",
-            "irrigation_history": "not_sure",
-            "last_irrigation_date": None,
+            "soil_moisture": "moist",
+            "drainage": "good",
+            "irrigation_history": "known",
+            "last_irrigation_date": "2026-09-25",
         },
+        fresh_weather,
     )
+    assert result.status in {
+        "complete",
+        "partial",
+        "unavailable",
+        "stale",
+        "not_assessed",
+        "unsupported",
+        "error",
+    }
     assert result.data["irrigation_command"] is None
+    assert result.data["water_attention"] == "inspect_field"
     assert "CRI" in result.summary
     assert all("irrigate now" not in check.lower() for check in result.checks)
 
