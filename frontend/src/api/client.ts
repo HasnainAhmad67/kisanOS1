@@ -1,8 +1,14 @@
 /**
  * KisanOS API client.
  *
- * Same-origin in development: the Vite dev server proxies /api to
- * http://localhost:8000 (see vite.config.ts), so no CORS handling lives here.
+ * All backend requests go through `request()` below, which prefixes every
+ * call with `${API_BASE}/api/v1/...`.
+ *
+ * VITE_API_BASE_URL (build-time) points at the separately deployed backend,
+ * e.g. https://YOUR-BACKEND-URL.vercel.app. When it is missing, API_BASE is
+ * empty and requests stay relative — in development the Vite dev server
+ * proxies /api to http://localhost:8000 (see vite.config.ts), and on a
+ * same-origin deployment relative paths hit the frontend's own domain.
  * Authenticated calls send the assessment access token as X-Assessment-Token.
  *
  * Every function mirrors an existing backend route; shapes come from
@@ -24,7 +30,7 @@ import type {
   ViewType,
 } from "../types/backend";
 
-const API_BASE = "/api/v1";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -68,7 +74,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE}${path}`, {
+    response = await fetch(`${API_BASE}/api/v1${path}`, {
       method: options.method ?? "GET",
       headers,
       body,
