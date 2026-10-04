@@ -38,4 +38,6 @@ The uploaded project set contains three agent archives (Weather, Water, Vision);
 - Vision quality checks are reused. Model inference is private/self-hosted only, with a strict output allowlist and fail-closed abstention; dummy and third-party image outputs are not used.
 - Crop and Market currently have native safe adapters pending teammate archives. Their replacement is an explicit follow-up integration, not a claim that missing files were reviewed.
 
+**Update (2026-10-04):** The Crop and Market team archives have since arrived (`agents/crop/crop/`, `agents/market/market/`, plus `crop_agent.zip (1)/`). Both were audited against this PRD and are deliberately **not** wired in; the native safe adapters remain authoritative (see `backend/README.md`).
+
 The attached teammate source archives contained no license files. Get contributor license approval before distributing the package outside the team.
