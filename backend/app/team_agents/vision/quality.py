@@ -1,22 +1,48 @@
 """Image-quality gate for the KisanOS Vision Agent.
 
 Runs BEFORE any analysis. Uses only Pillow + numpy (no OpenCV needed).
-Threshold values are starting points - tune them on real test photos.
+
+Every photo is sorted into exactly one of three states, and each state is
+decided only by evidence measured on the photo itself:
+
+    blocked      corrupt / unreadable, <96 px, near-black or near-white
+                 (plus the file-size upload envelope) -> the model is NOT run.
+    soft_warning proven blur, or a decodable photo whose short side is
+                 below 512 px -> the model IS run, flagged low-quality.
+    clear        everything else (>=512 px short side with usable exposure)
+                 -> the model is run with no quality flag at all.
+
+Notes on the thresholds (measured on the shipped fixtures and on blur/resize
+ladders - see tests/test_vision_quality_state.py):
+
+* BLUR_MIN = 25: the Laplacian variance of *sharp* photos measured 41-15471
+  while genuinely blurred photos measured 0.2-14, so 25 only fires on proven
+  blur. The old threshold of 100 flagged sharp close-ups (41-97) and pushed
+  them into the low-quality banner.
+* MIN_SHORT_SIDE = 512: a clear, sharp >=512 px photo must read as `clear`.
+* `plant_fraction` / `no_plant` is reported as an observation only. "No crop
+  visible" is a content hint - not evidence about blur, exposure or detail -
+  so it never gates inference. Hard blocks stay limited to corrupt /
+  unreadable / <96 px / near-black / near-white.
 """
 import io
 import numpy as np
 from PIL import Image
 
 MAX_BYTES = 10 * 1024 * 1024
-MIN_SHORT_SIDE = 640
+# >= MIN_SHORT_SIDE on the short side is "clear" by default.
+MIN_SHORT_SIDE = 512
 # Hard-block floor: below this no visible-sign screening can run at all.
 MIN_ACCEPT_SIDE = 96
-# Hard-block blur: below this no shape (leaf/plant) is distinguishable.
-HARD_BLUR_MIN = 25.0
-BLUR_MIN = 100.0
+# Proven blur only (see module docstring); any blur below this is SOFT.
+BLUR_MIN = 25.0
 BRIGHT_MIN = 40.0
 BRIGHT_MAX = 220.0
 PLANT_MIN_FRACTION = 0.10
+
+CLEAR = "clear"
+SOFT_WARNING = "soft_warning"
+BLOCKED = "blocked"
 
 TIPS = {
     "too_large": "The photo file is too big. Please send a photo under 10 MB.",
@@ -43,41 +69,66 @@ def _plant_fraction(img: Image.Image) -> float:
     return float(mask.mean())
 
 
-def check_quality(image_bytes: bytes) -> dict:
-    """Strict quality gate with two severities.
+def _finalise(result: dict) -> dict:
+    """Derive quality_state / quality_reasons / passed from the measured issues."""
+    if result["hard_issues"]:
+        state = BLOCKED
+    elif result["soft_issues"]:
+        state = SOFT_WARNING
+    else:
+        state = CLEAR
+    result["quality_state"] = state
+    # Reasons that determined the state only; informational notes stay in
+    # `issues` (and `tips`) but never change the state.
+    result["quality_reasons"] = sorted(set(result["hard_issues"] + result["soft_issues"]))
+    result["passed"] = state == CLEAR
+    return result
 
-    hard_issues: the photo cannot support screening at all (undecodable,
-    extreme exposure, <96 px, no plant area, shapeless blur) -> the Vision
-    Agent must NOT run the model.
-    soft_issues: the photo is imperfect but interpretable (>=96 px low
-    resolution, mild blur) -> the Vision Agent may run the model with a
-    low-confidence/low-quality warning.
-    `passed`/`issues` keep their original strict meaning (no issues at all).
+
+def check_quality(image_bytes: bytes) -> dict:
+    """Grade one photo: `quality_state` is `clear` | `soft_warning` | `blocked`.
+
+    Tiering:
+      * hard_issues  -> quality_state="blocked"; the Vision Agent must NOT run
+        the model (corrupt, unreadable, <96 px, near-black, near-white, or an
+        oversized upload envelope);
+      * soft_issues  -> quality_state="soft_warning"; the model runs and the
+        result is flagged low-quality / low-confidence;
+      * informational notes (e.g. no_plant) are reported in `issues`/`tips`
+        but do not gate inference;
+      * `passed` / `issues` keep their original strict meaning of "usable
+        without any warning" (`passed` == quality_state == "clear").
     """
-    result = {"passed": False, "blur_score": None, "brightness": None,
+    result = {"passed": False, "quality_state": BLOCKED, "quality_reasons": [],
+              "blur_score": None, "brightness": None,
               "plant_fraction": None, "width": None, "height": None,
               "issues": [], "tips": [], "hard_issues": [], "soft_issues": []}
 
-    def fail(code, hard=True):
+    def fail(code, tier="hard"):
         result["issues"].append(code)
         result["tips"].append(TIPS[code])
-        (result["hard_issues"] if hard else result["soft_issues"]).append(code)
+        if tier == "hard":
+            result["hard_issues"].append(code)
+        elif tier == "soft":
+            result["soft_issues"].append(code)
 
     if len(image_bytes) > MAX_BYTES:
         fail("too_large")
-        return result
+        return _finalise(result)
     try:
         img = Image.open(io.BytesIO(image_bytes))
         img.load()
         img = img.convert("RGB")
     except Exception:
         fail("bad_file")
-        return result
+        return _finalise(result)
 
     result["width"], result["height"] = img.size
-    if min(img.size) < MIN_SHORT_SIDE:
-        # <96 px: hard block. 96-639 px: soft warning (inference still runs).
-        fail("low_resolution", hard=min(img.size) < MIN_ACCEPT_SIDE)
+    if min(img.size) < MIN_ACCEPT_SIDE:
+        # <96 px: hard block. 96-511 px: soft warning (inference still runs).
+        fail("low_resolution")
+    elif min(img.size) < MIN_SHORT_SIDE:
+        fail("low_resolution", tier="soft")
 
     # Work on a downscaled copy so scores do not depend on phone megapixels
     work = img.copy()
@@ -88,14 +139,15 @@ def check_quality(image_bytes: bytes) -> dict:
     result["plant_fraction"] = round(_plant_fraction(work), 3)
 
     if result["blur_score"] < BLUR_MIN:
-        # Shapeless mush: hard block. Mild blur: soft warning.
-        fail("blurry", hard=result["blur_score"] < HARD_BLUR_MIN)
+        # Proven blur only, and always SOFT: a decodable photo still runs the
+        # model with a low-confidence warning instead of being discarded.
+        fail("blurry", tier="soft")
     if result["brightness"] < BRIGHT_MIN:
         fail("too_dark")
     elif result["brightness"] > BRIGHT_MAX:
         fail("too_bright")
     if result["plant_fraction"] < PLANT_MIN_FRACTION:
-        fail("no_plant")
+        # Observation only - never a gate (see module docstring).
+        fail("no_plant", tier="note")
 
-    result["passed"] = not result["issues"]
-    return result
+    return _finalise(result)

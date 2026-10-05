@@ -7,12 +7,20 @@ from datetime import UTC, datetime
 from typing import Any
 
 import httpx
+import numpy as np
 from PIL import Image, ImageOps
 
 from app.core.config import get_settings
 from app.schemas import AgentResult, Source
+from app.services import vision_inference as vi
 from app.services.vision_inference import predict_locally
-from app.team_agents.vision.quality import check_quality
+from app.team_agents.vision.quality import (
+    BLOCKED,
+    CLEAR,
+    MIN_ACCEPT_SIDE,
+    SOFT_WARNING,
+    check_quality,
+)
 
 VERSION = "vision-gateway-1.0.0"
 ALLOWED_CLASSES = {
@@ -39,6 +47,139 @@ UNSAFE_MODEL_TEXT = re.compile(
 )
 # Soft-warning (low-quality) photos may only surface this safe vocabulary.
 LOW_QUALITY_CLASSES = {"healthy_looking", "rust_like_pustules"}
+
+# Raw model label -> app-safe visible finding. This is the in-code mirror of
+# models/wheat_vision/label_map.json; when the shipped bundle is available the
+# mapping is read from that file instead (see map_visible_finding).
+WHEAT_VISIBLE_BY_LABEL = {
+    "Wheat___Healthy": "healthy_looking",
+    "Wheat___Brown_Rust": "rust_like_pustules",
+    "Wheat___Yellow_Rust": "rust_like_pustules",
+}
+
+
+def map_visible_finding(raw_label: str | None, label_map: dict[str, str] | None = None) -> str:
+    """Map a raw ONNX top-1 label to the app-safe visible finding.
+
+    * Wheat Healthy          -> ``healthy_looking``
+    * Wheat Brown Rust / Yellow Rust -> ``rust_like_pustules``
+    * any other, non-wheat, ``Invalid`` or unknown label -> ``unclear``
+
+    ``label_map`` is the shipped ``label_map.json`` as loaded from the model
+    directory (so the model's own labels are authoritative); the module
+    constant is the fallback mirror of that file.
+    """
+    mapping = WHEAT_VISIBLE_BY_LABEL if label_map is None else label_map
+    visible = mapping.get(raw_label) if isinstance(raw_label, str) else None
+    return visible if visible in ALLOWED_CLASSES else "unclear"
+
+
+def _diagnostics(
+    quality_state: str,
+    quality_reasons: list[str],
+    raw: bytes | None = None,
+    allow_inference: bool = True,
+) -> dict[str, Any]:
+    """Temporary structured diagnostics for the local ONNX pipeline.
+
+    Carries only shapes, labels, indices and scores - never photo bytes,
+    filesystem paths or secrets. ``raw=None`` (hard-blocked photo) means the
+    model is neither loaded nor run.
+    """
+    diag: dict[str, Any] = {
+        "model_loaded": False,
+        "model_input_shape": None,
+        "model_output_shape": None,
+        "preprocess_shape": None,
+        "raw_top_label": None,
+        "raw_top_index": None,
+        "raw_top_score": None,
+        "quality_state": quality_state,
+        "quality_reasons": list(quality_reasons),
+        "mapped_visible_finding": None,
+    }
+    if raw is None:
+        return diag
+    try:
+        bundle, _reason = vi._ensure_bundle(vi._model_dir())
+    except Exception:  # noqa: BLE001 - diagnostics must never break the pipeline.
+        bundle = None
+    if bundle is None:
+        return diag
+    try:
+        session = bundle["session"]
+        diag["model_loaded"] = True
+        diag["model_input_shape"] = list(session.get_inputs()[0].shape)
+        diag["model_output_shape"] = list(session.get_outputs()[0].shape)
+        if not allow_inference:
+            return diag
+        tensor = vi._preprocess(raw, bundle)
+        if tensor is None:
+            return diag
+        diag["preprocess_shape"] = [int(dim) for dim in tensor.shape]
+        outputs = session.run(None, {bundle["input_name"]: tensor[np.newaxis]})[0]
+        logits = np.asarray(outputs, dtype=np.float32)
+        row = logits.reshape(-1) if logits.ndim == 1 else logits[0]
+        # The graph emits logits: one numerically stable softmax, never twice.
+        exp = np.exp(row - float(row.max()))
+        probs = exp / float(exp.sum())
+        index = int(np.argmax(row))
+        diag["raw_top_index"] = index
+        diag["raw_top_label"] = bundle["id2label"].get(index)
+        diag["raw_top_score"] = round(float(probs[index]), 6)
+        diag["mapped_visible_finding"] = map_visible_finding(
+            diag["raw_top_label"], bundle["label_map"]
+        )
+    except Exception:  # noqa: BLE001 - diagnostics must never break the pipeline.
+        pass
+    return diag
+
+
+def _with_diagnostics(result: AgentResult, diagnostics: dict[str, Any]) -> AgentResult:
+    """Attach the temporary diagnostics block to a Vision result's ``data``."""
+    result.data["diagnostics"] = diagnostics
+    return result
+
+
+def _quality_state(quality: dict[str, Any]) -> str:
+    """State of one photo (``clear`` | ``soft_warning`` | ``blocked``).
+
+    Prefers the gate's own ``quality_state``; falls back to deriving it from
+    the issue tiers so callers that only carry the older fields still work.
+    """
+    state = quality.get("quality_state")
+    if state in (CLEAR, SOFT_WARNING, BLOCKED):
+        return str(state)
+    issues = set(quality.get("issues") or [])
+    hard = set(quality.get("hard_issues") or []) | issues & {
+        "too_large",
+        "bad_file",
+        "too_dark",
+        "too_bright",
+    }
+    width, height = quality.get("width"), quality.get("height")
+    if width and height and min(int(width), int(height)) < MIN_ACCEPT_SIDE:
+        hard.add("low_resolution")
+    soft = set(quality.get("soft_issues") or []) | issues - hard - {"no_plant"}
+    if hard:
+        return BLOCKED
+    if soft:
+        return SOFT_WARNING
+    return CLEAR
+
+
+def _fill_mapped_finding(diagnostics: dict[str, Any], payload: Any) -> None:
+    """Best-effort app-safe finding when the raw label was not observed locally."""
+    if diagnostics.get("mapped_visible_finding") or not isinstance(payload, dict):
+        return
+    findings = payload.get("visible_findings")
+    first = findings[0] if isinstance(findings, list) and findings else None
+    label = first.get("class") if isinstance(first, dict) else None
+    if label in ALLOWED_CLASSES:
+        diagnostics["mapped_visible_finding"] = label
+    elif payload.get("crop_detected") != "wheat":
+        # Non-wheat / unknown class: the app-safe mapping is "unclear".
+        diagnostics["mapped_visible_finding"] = "unclear"
 
 
 def _safe_image_bytes(raw: bytes) -> tuple[bytes, str]:
@@ -276,6 +417,8 @@ def _accept_prediction(
         safety_flags=["not_a_diagnosis", "local_validation_pending", "confidence_capped_at_medium"],
         data={
             "quality_passed": True,
+            # Model confidence, reported separately from the (clear) quality state.
+            "confidence": evidence_band,
             "images_accepted": len(passed),
             "image_ids": [item["record"]["id"] for item in passed],
             "model_version": str(payload.get("model_version", "not reported"))[:80],
@@ -289,7 +432,7 @@ async def analyze_images(
 ) -> AgentResult:
     now = datetime.now(UTC)
     if not image_records:
-        return AgentResult(
+        no_photo = AgentResult(
             assessment_id=assessment_id,
             agent_id="vision",
             status="not_assessed",
@@ -300,6 +443,10 @@ async def analyze_images(
             created_at=now,
             safety_flags=["manual_fallback_available"],
             input_evidence=["No photos supplied"],
+        )
+        return _with_diagnostics(
+            no_photo,
+            _diagnostics(BLOCKED, ["no_image_supplied"]),
         )
 
     checked = []
@@ -313,24 +460,33 @@ async def analyze_images(
                 failures.extend(quality.get("issues", []))
         except (OSError, KeyError, TypeError):
             failures.append("image_unreadable")
-    passed = [item for item in checked if item["quality"].get("passed")]
-    # Soft tier: the strict gate failed but the file decodes and every issue is
-    # soft (>=96 px low resolution, mild blur). These still run the model,
-    # flagged low-quality / low-confidence (never medium/high evidence).
-    soft = [
-        item
-        for item in checked
-        if not item["quality"].get("passed")
-        and item["quality"].get("hard_issues") is not None
-        and not item["quality"].get("hard_issues")
-        and bool(item["quality"].get("soft_issues"))
-    ]
-    runnable = passed or soft
-    low_quality = not passed and bool(soft)
+
+    states = [(item, _quality_state(item["quality"])) for item in checked]
+    # Soft tier: a decodable >=96 px photo carrying only a warning still runs
+    # the model - a soft warning never prevents inference. Quality state and
+    # model confidence stay separate: a clear photo may still score low.
+    runnable = [item for item, state in states if state != BLOCKED]
+    has_clear = any(state == CLEAR for _item, state in states)
     if not runnable:
-        # HARD BLOCK: undecodable / extreme exposure / <96 px / no plant area /
-        # shapeless blur. The model is NOT run; no disease or stress inference.
-        return AgentResult(
+        run_state = BLOCKED
+    elif has_clear:
+        run_state = CLEAR
+    else:
+        run_state = SOFT_WARNING
+    low_quality = run_state == SOFT_WARNING
+
+    if run_state == BLOCKED:
+        quality_reasons = sorted(
+            {
+                issue
+                for item, state in states
+                if state == BLOCKED
+                for issue in item["quality"].get("hard_issues", [])
+            }
+        ) or sorted(set(failures))
+        # HARD BLOCK: corrupt / unreadable / <96 px / near-black / near-white.
+        # The model is NOT loaded or run; no disease or stress inference.
+        blocked = AgentResult(
             assessment_id=assessment_id,
             agent_id="vision",
             status="not_assessed",
@@ -348,38 +504,67 @@ async def analyze_images(
             data={"quality_passed": False, "quality_issues": sorted(set(failures)), "image_ids": [item["record"]["id"] for item in checked]},
             input_evidence=["Uploaded photos did not pass image-quality checks"],
         )
+        return _with_diagnostics(blocked, _diagnostics(run_state, quality_reasons))
+
+    if run_state == SOFT_WARNING:
+        quality_reasons = sorted(
+            {
+                issue
+                for item in runnable
+                for issue in item["quality"].get("soft_issues", [])
+            }
+        )
+    else:
+        quality_reasons = []
 
     settings = get_settings()
-    if settings.vision_inference_url:
+    remote = bool(settings.vision_inference_url)
+    # Temporary diagnostics: shapes + raw top-1 of the first runnable photo.
+    diagnostics = _diagnostics(
+        run_state,
+        quality_reasons,
+        raw=runnable[0]["raw"],
+        allow_inference=not remote,
+    )
+
+    if remote:
         # The only path that receives images is an operator-configured private self-hosted endpoint.
         try:
             payload = await _fetch_remote_prediction(settings, assessment_id, intake, runnable)
         except (httpx.HTTPError, ValueError, KeyError, TypeError, AttributeError, OSError):
-            return _model_unavailable_result(
-                assessment_id,
-                runnable,
-                now,
-                "Service error or schema mismatch; output safely abstained.",
+            return _with_diagnostics(
+                _model_unavailable_result(
+                    assessment_id,
+                    runnable,
+                    now,
+                    "Service error or schema mismatch; output safely abstained.",
+                ),
+                diagnostics,
             )
     else:
-        # Local model plug-in point (app.services.vision_inference).
-        # No artifacts are shipped today, so this returns (None, reason) and
-        # Vision stays in safe fallback - never a dummy or example result.
+        # Local ONNX plug-in point (app.services.vision_inference).
+        # Missing artifacts return (None, reason) and Vision stays in safe
+        # fallback - never a dummy or example result.
         try:
             payload, reason = predict_locally([item["raw"] for item in runnable], intake)
         except Exception:  # noqa: BLE001 - a broken loader must never crash the pipeline.
             payload, reason = None, "local model inference raised an unexpected error; no result was used"
         if payload is None:
-            return _no_model_configured_result(
-                assessment_id, runnable, now, reason or "local model inference is not configured"
+            return _with_diagnostics(
+                _no_model_configured_result(
+                    assessment_id, runnable, now, reason or "local model inference is not configured"
+                ),
+                diagnostics,
             )
+    _fill_mapped_finding(diagnostics, payload)
 
     try:
-        return _accept_prediction(assessment_id, payload, runnable, now, low_quality=low_quality)
+        result = _accept_prediction(assessment_id, payload, runnable, now, low_quality=low_quality)
     except (ValueError, KeyError, TypeError, AttributeError):
-        return _model_unavailable_result(
+        result = _model_unavailable_result(
             assessment_id,
             runnable,
             now,
             "Service error or schema mismatch; output safely abstained.",
         )
+    return _with_diagnostics(result, diagnostics)

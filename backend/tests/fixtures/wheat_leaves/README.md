@@ -26,9 +26,11 @@ Honesty notes:
   disease confidence (the pipeline caps confidence at `medium` and reports it
   as image-evidence quality only).
 * Originals were resized so the short side is 800 px (the independent image
-  quality gate requires ≥ 640 px) and re-encoded as JPEG (quality 88). At this
-  size all three pass `check_quality` (blur ≥ 100, brightness 40–220, plant
-  fraction ≥ 0.10) and the model predictions above still hold.
+  quality gate is `clear` from 512 px on the short side, hard-blocking below
+  96 px) and re-encoded as JPEG (quality 88). At this size all three pass
+  `check_quality` (blur ≥ 25, brightness 40–220) and the model predictions
+  above still hold. Crop hue (`plant fraction` ≥ 0.10) is reported by the gate
+  but is an observation only, not a gate condition.
 
 License compliance: CC BY 4.0 requires attribution — the table above is the
 attribution; keep it with the images when redistributing.
