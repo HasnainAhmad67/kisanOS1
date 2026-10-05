@@ -241,6 +241,7 @@ export const en = {
   "agent.empty":
     "Nothing from this agent yet — no data has been returned for this check, so nothing is shown.",
   "agent.evidence": "Evidence:",
+  "agent.sources": "Sources",
   "agent.fieldChecks": "Field checks",
   "agent.evidenceSources": "Evidence & sources",
   "agent.safetyFlags": "Safety flags",
@@ -337,6 +338,92 @@ export const en = {
   "team.pill.vision": "Vision Agent",
   "team.pill.market": "Market Agent",
   "team.linkedin": "LinkedIn",
+
+  /* ------------------------------------ results: untranslated backend text */
+  "results.originalText": "Original system message (English)",
+
+  /* -------------------------------------------------- evidence & sources */
+  "ev.band.low": "low",
+  "ev.band.medium": "medium",
+  "ev.band.high": "high",
+  "ev.band.not_calibrated": "not calibrated",
+
+  "ev.label.farmer_reported": "farmer_reported",
+  "ev.label.photo_visible": "photo_visible",
+  "ev.label.rule_based_check": "rule_based_check",
+  "ev.label.crop": "crop",
+  "ev.label.water": "water",
+  "ev.label.vision": "vision",
+
+  "ev.src.official": "official",
+  "ev.src.supporting": "supporting",
+  "ev.src.secondary": "secondary",
+  "ev.src.unverified": "unverified",
+  "ev.src.farmer_reported": "farmer reported",
+  "ev.src.not_applicable": "not applicable",
+
+  /* --------------------------------------------------------- conflict topics
+   * English values keep the backend's raw topic ids so English renders
+   * exactly as before. */
+  "plan.topic.field_moisture": "field_moisture",
+  "plan.topic.field_moisture_vs_weather": "field_moisture_vs_weather",
+  "plan.topic.weather_freshness": "weather_freshness",
+  "plan.topic.crop_vision_disagreement": "crop_vision_disagreement",
+
+  /* ------------------------------------------- backend safety flag tokens
+   * English keeps the raw token (unchanged rendering); Urdu translates. */
+  "flag.low_quality_image": "low_quality_image",
+  "flag.low_confidence": "low_confidence",
+  "flag.retake_recommended": "retake_recommended",
+  "flag.not_a_diagnosis": "not_a_diagnosis",
+  "flag.local_validation_pending": "local_validation_pending",
+  "flag.confidence_capped_at_medium": "confidence_capped_at_medium",
+  "flag.photo_quality_failed": "photo_quality_failed",
+  "flag.no_visual_analysis_performed": "no_visual_analysis_performed",
+  "flag.manual_fallback_available": "manual_fallback_available",
+  "flag.model_unavailable": "model_unavailable",
+  "flag.invalid_output_rejected": "invalid_output_rejected",
+  "flag.no_dummy_output_used": "no_dummy_output_used",
+  "flag.wheat_scope_gate": "wheat_scope_gate",
+  "flag.no_interpretation_accepted": "no_interpretation_accepted",
+  "flag.unsafe_model_text_rejected": "unsafe_model_text_rejected",
+  "flag.unsupported_scope": "unsupported_scope",
+  "flag.unsupported_crop_scope": "unsupported_crop_scope",
+  "flag.not_field_sensor": "not_field_sensor",
+  "flag.no_crop_thresholds_applied": "no_crop_thresholds_applied",
+  "flag.no_simulated_weather_fallback": "no_simulated_weather_fallback",
+  "flag.weather_not_used_for_water": "weather_not_used_for_water",
+  "flag.weather_provenance_missing": "weather_provenance_missing",
+  "flag.crop_rules_unverified": "crop_rules_unverified",
+  "flag.no_chemical_guidance": "no_chemical_guidance",
+  "flag.agent_error_isolated": "agent_error_isolated",
+  "flag.stale_quote": "stale_quote",
+  "flag.not_official_market_data": "not_official_market_data",
+  "flag.farmer_reported_only": "farmer_reported_only",
+  "flag.simulated_demo_data": "simulated_demo_data",
+  "flag.no_price_invented": "no_price_invented",
+  "flag.adapter_payload_not_used": "adapter_payload_not_used",
+  "flag.market_name_missing": "market_name_missing",
+  "flag.value_not_a_number": "value_not_a_number",
+  "flag.value_not_positive": "value_not_positive",
+  "flag.value_out_of_range": "value_out_of_range",
+  "flag.unit_missing": "unit_missing",
+  "flag.no_irrigation_command": "no_irrigation_command",
+  "flag.no_unapproved_numeric_thresholds": "no_unapproved_numeric_thresholds",
+  "flag.forecast_not_effective_recharge": "forecast_not_effective_recharge",
+  "flag.weather_not_used_or_not_fresh": "weather_not_used_or_not_fresh",
+  "flag.drainage_or_saturation_inspection": "drainage_or_saturation_inspection",
+  "flag.field_context_incomplete": "field_context_incomplete",
+  "flag.sowing_context_recorded_not_used_as_threshold":
+    "sowing_context_recorded_not_used_as_threshold",
+  "flag.observed_at_missing": "observed_at_missing",
+  "flag.observed_at_invalid": "observed_at_invalid",
+  "flag.observed_at_timezone_missing": "observed_at_timezone_missing",
+  "flag.observed_at_future": "observed_at_future",
+  "flag.quote_not_an_object": "quote_not_an_object",
+  "flag.example_output_not_real_analysis": "example_output_not_real_analysis",
+  "flag.ai_output_rejected": "ai_output_rejected",
+  "flag.ai_enhancement_unavailable": "ai_enhancement_unavailable",
 } as const;
 
 export type DictKey = keyof typeof en;

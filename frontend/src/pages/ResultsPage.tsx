@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { ApiError, getResults } from "../api/client";
 import { AgentCard } from "../components/AgentCard";
 import { Alert } from "../components/Alert";
+import { BackendText } from "../components/BackendText";
 import { Button, LinkButton } from "../components/Button";
 import { Card } from "../components/Card";
 import { StatusBadge } from "../components/StatusBadge";
 import { useAssessment } from "../hooks/useAssessment";
-import { translate, useI18n, type DictKey } from "../i18n";
+import { translate, useI18n, type DictKey, type Locale } from "../i18n";
 import type {
   AgentId,
   AgentResult,
@@ -23,6 +24,16 @@ function isPending(
   return "events" in data && data.farm_plan === null && !("created_at" in data);
 }
 
+/** Dynamic backend token → localized label (English rendering unchanged). */
+function txToken(
+  tx: (key: string, fallback: string) => string,
+  locale: Locale,
+  prefix: string,
+  raw: string,
+): string {
+  return tx(`${prefix}.${raw}`, locale === "ur" ? raw.replace(/_/g, " ") : raw);
+}
+
 /**
  * Results — GET /assessments/{id}/results. Five agent cards in fixed
  * order, then the farm plan (safety banner, ≤3 prioritized checks,
@@ -32,7 +43,7 @@ function isPending(
 export function ResultsPage() {
   const navigate = useNavigate();
   const { assessment, reset } = useAssessment();
-  const { t, locale } = useI18n();
+  const { t, tx, locale } = useI18n();
 
   const [data, setData] = useState<AssessmentResultsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -111,7 +122,9 @@ export function ResultsPage() {
           aria-hidden="true"
         />
         <PageHeading />
-        <Alert>{error}</Alert>
+        <Alert>
+          <BackendText text={error} />
+        </Alert>
         <p className="empty-note">🌾 {t("results.errorEmpty")}</p>
         <Button block onClick={() => void load()}>
           {t("common.tryAgain")}
@@ -209,7 +222,9 @@ export function ResultsPage() {
             <span className="card__meta">{t("plan.fieldStatus")}</span>
             <StatusBadge status={plan.status} prominent />
           </div>
-          <p style={{ marginBlockStart: "var(--space-3)" }}>{plan.rationale}</p>
+          <p style={{ marginBlockStart: "var(--space-3)" }}>
+            <BackendText text={plan.rationale} />
+          </p>
 
           {plan.checks.length > 0 ? (
             <>
@@ -219,17 +234,23 @@ export function ResultsPage() {
               <ol className="plan-checks">
                 {plan.checks.slice(0, 3).map((check, index) => (
                   <li key={check.id} style={{ "--step": index + 1 } as CSSProperties}>
-                    <strong className="plan-checks__title">{check.title}</strong>
-                    <p style={{ margin: 0 }}>{check.how_to_check}</p>
-                    <p className="empty-note" style={{ margin: 0 }}>
-                      {t("plan.why")} {check.why}
+                    <strong className="plan-checks__title">
+                      <BackendText text={check.title} />
+                    </strong>
+                    <p style={{ margin: 0 }}>
+                      <BackendText text={check.how_to_check} />
                     </p>
                     <p className="empty-note" style={{ margin: 0 }}>
-                      {t("plan.watch")} {check.what_to_observe}
+                      {t("plan.why")} <BackendText text={check.why} />
+                    </p>
+                    <p className="empty-note" style={{ margin: 0 }}>
+                      {t("plan.watch")} <BackendText text={check.what_to_observe} />
                     </p>
                     {check.evidence_labels.length > 0 ? (
                       <p className="card__meta">
-                        {check.evidence_labels.join(" · ")}
+                        {check.evidence_labels
+                          .map((label) => txToken(tx, locale, "ev.label", label))
+                          .join(" · ")}
                       </p>
                     ) : null}
                   </li>
@@ -246,13 +267,23 @@ export function ResultsPage() {
               <ul className="agent-card__list">
                 {plan.conflicts.map((conflict, index) => (
                   <li key={index}>
-                    {conflict.topic ? `${conflict.topic}: ` : ""}
+                    {conflict.topic
+                      ? `${txToken(tx, locale, "plan.topic", conflict.topic)}: `
+                      : ""}
                     {Array.isArray(conflict.findings)
-                      ? conflict.findings.join("; ")
+                      ? conflict.findings.map((finding, findingIndex) => (
+                          <span key={findingIndex}>
+                            {findingIndex > 0 ? "; " : ""}
+                            <BackendText text={finding} />
+                          </span>
+                        ))
                       : null}
                     {conflict.next_check
-                      ? ` ${t("plan.nextCheck")} ${conflict.next_check}`
-                      : ""}
+                      ? ` ${t("plan.nextCheck")} `
+                      : null}
+                    {conflict.next_check ? (
+                      <BackendText text={conflict.next_check} />
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -262,9 +293,12 @@ export function ResultsPage() {
           <h3 style={{ marginBlockStart: "var(--space-4)" }}>
             {t("plan.verification")}
           </h3>
-          <p>{plan.verification_step}</p>
+          <p>
+            <BackendText text={plan.verification_step} />
+          </p>
           <p className="card__meta">
-            {t("plan.policy")} <span className="num">{plan.policy_version}</span>
+            {t("plan.policy")}{" "}
+            <span className="num" dir="ltr">{plan.policy_version}</span>
           </p>
         </Card>
       ) : (
@@ -280,8 +314,18 @@ export function ResultsPage() {
         explanation.status === "complete" &&
         explanation.farmer_summary ? (
           <>
-            <p style={{ margin: 0 }}>{explanation.farmer_summary}</p>
-            <p className="card__meta">{explanation.disclaimer}</p>
+            {/* Gemini may answer in Urdu (locale passed at intake) or English;
+                English stays visible under its own label — never hidden. */}
+            <p style={{ margin: 0 }}>
+              {locale === "ur" && explanation.locale === "ur" ? (
+                <span lang="ur">{explanation.farmer_summary}</span>
+              ) : (
+                <BackendText text={explanation.farmer_summary} />
+              )}
+            </p>
+            <p className="card__meta">
+              <BackendText text={explanation.disclaimer} />
+            </p>
           </>
         ) : (
           <p className="empty-note" style={{ margin: 0 }}>

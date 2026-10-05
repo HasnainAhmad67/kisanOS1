@@ -671,6 +671,29 @@ textarea.field__control {
   color: var(--color-text-muted);
 }
 
+/* English backend prose shown while the UI is Urdu: a visible Urdu label
+   above the original English, kept LTR so wording, codes and numbers read
+   exactly as the backend wrote them. Never hidden. */
+.backend-en__label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  line-height: var(--line-tight);
+}
+
+.backend-en__text {
+  display: block;
+  direction: ltr;
+  text-align: start;
+  unicode-bidi: isolate;
+}
+
+.backend-en__inline {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
 /* Per-agent accent: colored top border + icon tint. */
 .agent-card {
   border-block-start: 4px solid var(--color-border);

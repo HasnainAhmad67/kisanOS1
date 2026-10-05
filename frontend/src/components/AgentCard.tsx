@@ -1,5 +1,6 @@
+import { BackendText } from "./BackendText";
 import { StatusBadge } from "./StatusBadge";
-import { translate, useI18n } from "../i18n";
+import { translate, useI18n, type Locale } from "../i18n";
 import type { AgentId, AgentResult } from "../types/backend";
 
 /** Presentation icons — decorative only (screen readers get the title). */
@@ -11,6 +12,20 @@ const ICONS: Record<AgentId, string> = {
   market: "💰",
 };
 
+/**
+ * Look up a dynamic backend token (evidence band, source status, safety
+ * flag). English keeps the raw rendering it always had; Urdu uses the
+ * translated dictionary value, falling back to a readable English token.
+ */
+function txToken(
+  tx: (key: string, fallback: string) => string,
+  locale: Locale,
+  prefix: string,
+  raw: string,
+): string {
+  return tx(`${prefix}.${raw}`, locale === "ur" ? raw.replace(/_/g, " ") : raw);
+}
+
 interface AgentCardProps {
   agentId: AgentId;
   /** Present once results are loaded; undefined keeps the shell placeholder. */
@@ -21,9 +36,13 @@ interface AgentCardProps {
  * One agent result card. Summary, observations and checks stay visible;
  * evidence band + sources + provenance collapse behind a native
  * <details> (accessible, keyboard operable). Safety flags never hide.
+ *
+ * UI language drives every label; backend prose is rendered through
+ * <BackendText> (Urdu when a known wording exists, English under its own
+ * label otherwise) so English UI output stays byte-for-byte unchanged.
  */
 export function AgentCard({ agentId, result }: AgentCardProps) {
-  const { t, locale } = useI18n();
+  const { t, tx, locale } = useI18n();
   const title = translate(locale, `agent.${agentId}` as `agent.${typeof agentId}`);
 
   return (
@@ -42,7 +61,9 @@ export function AgentCard({ agentId, result }: AgentCardProps) {
       </div>
       {result ? (
         <>
-          <p className="agent-card__summary">{result.summary}</p>
+          <p className="agent-card__summary">
+            <BackendText text={result.summary} />
+          </p>
           {agentId === "vision" && result.safety_flags.includes("low_quality_image") ? (
             <p className="vision-notice vision-notice--warn">
               <strong>⚠️ {t("vision.soft.title")}</strong>
@@ -60,7 +81,9 @@ export function AgentCard({ agentId, result }: AgentCardProps) {
           {result.observations.length > 0 ? (
             <ul className="agent-card__list">
               {result.observations.slice(0, 5).map((observation) => (
-                <li key={observation}>{observation}</li>
+                <li key={observation}>
+                  <BackendText text={observation} />
+                </li>
               ))}
             </ul>
           ) : null}
@@ -71,7 +94,9 @@ export function AgentCard({ agentId, result }: AgentCardProps) {
               </p>
               <ul className="agent-card__list">
                 {result.checks.slice(0, 3).map((check) => (
-                  <li key={check}>{check}</li>
+                  <li key={check}>
+                    <BackendText text={check} />
+                  </li>
                 ))}
               </ul>
             </>
@@ -80,7 +105,7 @@ export function AgentCard({ agentId, result }: AgentCardProps) {
           {result.safety_flags.length > 0 ? (
             <ul className="agent-card__list safety-flags">
               {result.safety_flags.map((flag) => (
-                <li key={flag}>{flag}</li>
+                <li key={flag}>{txToken(tx, locale, "flag", flag)}</li>
               ))}
             </ul>
           ) : null}
@@ -89,37 +114,50 @@ export function AgentCard({ agentId, result }: AgentCardProps) {
           <details className="agent-details">
             <summary>{t("agent.evidenceSources")}</summary>
             <p className="card__meta">
-              {t("agent.evidence")} {result.evidence_band.replace(/_/g, " ")}
-              {result.evidence_reason ? ` — ${result.evidence_reason}` : ""}
+              {t("agent.evidence")}{" "}
+              {txToken(tx, locale, "ev.band", result.evidence_band)}
+              {result.evidence_reason ? (
+                <>
+                  {" — "}
+                  <BackendText text={result.evidence_reason} />
+                </>
+              ) : null}
             </p>
             {result.sources.length > 0 ? (
-              <ul className="source-list">
-                {result.sources.map((source) => (
-                  <li key={`${source.title}-${source.publisher}`}>
-                    {source.url ? (
-                      <a
-                        href={source.url}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                      >
-                        {source.title}
-                      </a>
-                    ) : (
-                      <span>{source.title}</span>
-                    )}{" "}
-                    <span className="card__meta">
-                      — {source.publisher} ·{" "}
-                      {source.source_status.replace(/_/g, " ")}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <>
+                {/* Heading only exists in Urdu mode — English markup is untouched. */}
+                {locale === "ur" ? (
+                  <p className="card__meta">{t("agent.sources")}</p>
+                ) : null}
+                <ul className="source-list">
+                  {result.sources.map((source) => (
+                    <li key={`${source.title}-${source.publisher}`}>
+                      {source.url ? (
+                        <a
+                          href={source.url}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          dir="ltr"
+                        >
+                          {source.title}
+                        </a>
+                      ) : (
+                        <span>{source.title}</span>
+                      )}{" "}
+                      <span className="card__meta">
+                        — {source.publisher} ·{" "}
+                        {txToken(tx, locale, "ev.src", source.source_status)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
             ) : null}
             <p className="card__meta">
               <time className="num" dateTime={result.created_at}>
                 {new Date(result.created_at).toLocaleString()}
               </time>{" "}
-              · {result.provider_or_model}
+              · <span className="num" dir="ltr" lang="en">{result.provider_or_model}</span>
             </p>
           </details>
         </>
