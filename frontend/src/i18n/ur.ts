@@ -93,17 +93,26 @@ export const ur: Record<DictKey, string> = {
   "stage.milk": "دودھ والا مرحلہ",
   "stage.dough": "آٹے والا مرحلہ",
   "stage.maturity": "پختگی",
+  "stage.not_sure": "نہیں معلوم",
 
   /* ------------------------------------------------------- options */
+  "crop.wheat": "گندم",
+  "area.bahawalpur_sadar": "بہاولپور صدر",
+  "area.ahmadpur_east": "احمد پور شرقی",
+  "area.yazman": "یزمان",
+  "area.hasilpur": "حصیل پور",
+  "area.khairpur_tamewali": "خیر پور ٹامیوالی",
   "soil.sandy": "ریتیلی",
   "soil.loamy": "دومنٹی",
   "soil.clayey": "چکنی",
   "moisture.dry": "خشک",
   "moisture.moist": "نمی",
   "moisture.wet": "گیلی",
+  "moisture.not_sure": "نہیں معلوم",
   "drainage.good": "اچھی",
   "drainage.poor": "کمزور",
   "drainage.waterlogging": "پانی بھر جانا",
+  "drainage.not_sure": "نہیں معلوم",
   "onset.today": "آج",
   "onset.recent": "پچھلے چند دن میں",
   "onset.over_a_week": "ہفتے سے پہلے",
@@ -206,6 +215,23 @@ export const ur: Record<DictKey, string> = {
   "results.errorEmpty":
     "نتائج لوڈ نہیں ہو سکے — اپنا کنکشن چیک کر کے دوبارہ کوشش کریں۔",
 
+  /* ----------------------------------------------------- input recap */
+  "recap.title": "آپ کی فراہم کردہ کھیت کی معلومات",
+  "recap.note":
+    "کسان کی بتائی یا منتخب کردہ معلومات — جیسی درج کی گئیں، نظام نے ان کی تصدیق نہیں کی۔",
+  "recap.crop": "فصل",
+  "recap.area": "علاقہ",
+  "recap.observedAt": "معائنے کی تاریخ",
+  "recap.growthStage": "فصل کا مرحلہ",
+  "recap.lastIrrigation": "آخری پاشنے کی تاریخ",
+  "recap.soilMoisture": "مٹی کی نمی",
+  "recap.drainage": "نکاسی",
+  "recap.symptoms": "بتائی گئی علامات",
+  "recap.onset": "علامات کب شروع ہوئیں",
+  "recap.spreading": "پھیلاؤ",
+  "recap.photos": "تصویریں",
+  "recap.photoViews": "تصویر کے قسم",
+
   /* -------------------------------------------------------- farm plan */
   "plan.title": "فارم پلان",
   "plan.fieldStatus": "کھیت کی حالت",
@@ -223,6 +249,8 @@ export const ur: Record<DictKey, string> = {
   "exp.title": "وضاحت",
   "exp.unavailable": "وضاحت دستیاب نہیں",
   "exp.authoritative": "اوپر دیا گیا کھیت کا منصوبہ حتمی فیصلہ ہے۔",
+  "exp.note":
+    "اختیاری وضاحت دستیاب نہیں ہے۔ اوپر دیا گیا فارم پلان ہی حتمی نتیجہ ہے۔",
   "exp.consent_missing": "وضاحت کی اجازت نہیں دی گئی",
   "exp.disabled": "وضاحت کی خدمت بند ہے",
   "exp.key_missing": "وضاحت کی کوئی کلید مقرر نہیں",
@@ -243,6 +271,51 @@ export const ur: Record<DictKey, string> = {
   "agent.fieldChecks": "کھیت میں جانچ",
   "agent.evidenceSources": "شواہد اور ذرائع",
   "agent.safetyFlags": "حفاظتی نشانیاں",
+  "agent.technicalDetails": "تکنیکی تفصیلات",
+
+  /* --------------------------------- crop evidence split (Crop card) */
+  "crop.evidence.heading": "فصل کے شواہدات، ماخذ کے مطابق",
+  "crop.evidence.farmer": "کسان کی بتائی ہوئی علامات",
+  "crop.evidence.photo": "تصویر میں نظر آنے والی علامات",
+  "crop.evidence.possibilities": "جانچ کے امکانات",
+  "crop.evidence.checks": "کھیت میں جانچ",
+  "crop.evidence.escalation": "ماہر سے رابطے کی علامات",
+
+  /* ------------------------- photo screening report (Vision card) */
+  "vision.report.heading": "تصویر کا ابتدائی جائزہ",
+  "vision.report.status.assessable": "تصویر قابلِ جانچ ہے",
+  "vision.report.status.limited": "تصویر محدود طور پر قابلِ جانچ ہے",
+  "vision.report.status.not_assessable": "تصویر کی جانچ نہیں ہو سکی",
+  "vision.report.category.healthy_looking": "پتے کا منظر عموماً ٹھیک",
+  "vision.report.category.rust_like_marks": "زنگ جیسی ظاہری علامات",
+  "vision.report.category.unclear": "غیر واضح",
+  "vision.report.visible": "تصویر میں کیا نظر آیا",
+  "vision.report.notVisible": "تصویر میں کیا واضح نظر نہیں آیا",
+  "vision.report.interpretation": "ابتدائی تشریح",
+  "vision.report.fieldChecks": "کھیت میں اگلی جانچ",
+  "vision.report.retake": "تصویر دوبارہ کب لیں",
+  "vision.report.expert": "ماہر سے رابطے کی علامات",
+  "vision.report.subject": "تصویر میں نظر آنے والا حصہ",
+  "vision.report.scope": "اسکریننگ کی حدود",
+  "vision.report.subject.wheat_leaf": "گندم کا پتا",
+  "vision.report.subject.wheat_ear_or_head": "گندم کا خوشہ",
+  "vision.report.subject.whole_field_or_distant_crop": "پورا کھیت یا دور کی فصل",
+  "vision.report.subject.other_plant_part": "پودے کا دوسرا حصہ",
+  "vision.report.subject.unclear": "نہیں پہچانا جا سکا",
+  "vision.report.scope.leaf_screening_applicable": "اس تصویر پر پتے کی علامات کی اسکریننگ لاگو ہوتی ہے",
+  "vision.report.scope.leaf_screening_not_applicable": "اس تصویر پر پتے کی علامات کی اسکریننگ لاگو نہیں ہوتی",
+  "vision.report.scope.subject_unclear": "تصویر میں نظر آنے والا حصہ نہیں پہچانا جا سکا",
+  "vision.report.scopeNotice.ear": "تصویر صاف ہے، لیکن اس میں پتا نہیں بلکہ گندم کا خوشہ نظر آ رہا ہے۔",
+  "vision.report.scopeNotice.other": "تصویر صاف ہے، لیکن اس میں گندم کے پتے کا قریبی نظارہ نہیں ہے۔",
+  "vision.report.quality": "تصویر کا معیار",
+  "vision.report.scopeShort": "پتے کی علامات کی اسکریننگ",
+  "vision.report.scopeShort.leaf_screening_applicable": "اس تصویر پر لاگو ہوتی ہے",
+  "vision.report.scopeShort.leaf_screening_not_applicable": "اس تصویر پر لاگو نہیں ہوتی",
+  "vision.report.scopeShort.subject_unclear": "حصہ نہیں پہچانا جا سکا",
+  "vision.noPhoto.note":
+    "کوئی تصویر شامل نہیں کی گئی، اس لیے وژن کا جائزہ نہیں ہوا۔ باقی نتائج اور آپ کا فارم پلان مکمل ہے۔",
+  "vision.unavailable.note":
+    "تصویر کی اسکریننگ فی الحال دستیاب نہیں ہے۔ باقی نتائج اور آپ کا فارم پلان مکمل ہے۔",
 
   /* ------------------------------------- market quote (Punjab AMIS) */
   "market.quote.heading": "منڈی قیمت",
@@ -294,6 +367,30 @@ export const ur: Record<DictKey, string> = {
   "water.context.field_check_needed": "کھیت کی جانچ درکار ہے",
   "water.context.watch_drainage": "نکاسی پر نظر رکھیں",
   "water.context.forecast_context_only": "پیشگویی صرف سیاق ہے",
+
+  /* --------------------------------- water: what is needed next panel */
+  "water.next.heading": "اگلا کیا درکار ہے",
+  "water.next.infoNeeded": "مزید درکار معلومات",
+  "water.next.fieldCheck": "کھیت میں اگلی جانچ",
+  "water.next.label.soil_moisture": "مٹی کی نمی",
+  "water.next.label.drainage": "نکاسی",
+  "water.next.label.last_irrigation_date": "آخری آبپاشی کی تاریخ",
+  "water.next.label.growth_stage": "نمو کا مرحلہ",
+  "water.next.label.weather_context": "تازہ موسم کی پیشگویی",
+  "water.next.label.soil_texture": "مٹی کی قسم",
+  "water.next.reason.soil_moisture":
+    "مٹی کی نمی درج نہیں، اس لیے اس سے پانی کا کوئی نتیجہ نہیں نکالا گیا۔",
+  "water.next.reason.drainage":
+    "نکاسی درج نہیں، اس لیے ریکارڈ سے پانی جمع ہونے کا اندازہ نہیں لگایا جا سکتا۔",
+  "water.next.reason.last_irrigation_date":
+    "آخری آبپاشی کی تاریخ نامعلوم ہے، اس لیے ریکارڈ میں پانی کب لگایا گیا وہ نہیں دکھتا۔",
+  "water.next.reason.growth_stage":
+    "گندم کا نمو کا مرحلہ درج نہیں، اس لیے مرحلے کی تفصیل چھوڑ دی گئی ہے۔",
+  "water.next.reason.weather_context":
+    "موسم کی پیشگویی تازہ نہیں، اس لیے اسے سیاق کے طور پر استعمال نہیں کیا جاتا۔",
+  "water.next.reason.soil_texture":
+    "مٹی کی قسم درج نہیں؛ یہ صرف سیاق ہے اور کبھی کوئی حد نہیں۔",
+  "water.next.empty": "فی الحال کچھ اور درکار نہیں۔",
 
   /* ------------------------------------------- vision low-quality notices */
   "vision.soft.title": "کم معیار تصویر — ابتدائی ظاہری علامات کا جائزہ",

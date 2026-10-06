@@ -8,6 +8,12 @@ from typing import Any
 from app.core.config import get_settings
 from app.schemas import AgentResult, Source
 from app.services.market_adapter import adapter_status, fetch_market_quote
+from app.team_agents.market.amis import (
+    PUBLISHER as AMIS_PUBLISHER,
+    SOURCE_TITLE as AMIS_SOURCE_TITLE,
+    fetch_quote as fetch_amis_quote,
+    requested_market as amis_requested_market,
+)
 
 VERSION = "market-safe-adapter-1.1.0"
 
@@ -23,6 +29,69 @@ UNSAFE_MARKET_TEXT = re.compile(
 NO_QUOTE_REASON = (
     "no verified current AMIS quote or farmer-entered quote was supplied."
 )
+
+# Static English sentences for the official AMIS path. They are mapped to Urdu
+# in frontend/src/i18n/backendText.ts, so keep them byte-stable.
+AMIS_OBSERVED = (
+    "Retrieved from Punjab AMIS; KisanOS did not edit, estimate, or infer any price."
+)
+AMIS_REASON_FRESH = (
+    "Source-reported quote from Punjab AMIS; freshness is derived from the AMIS "
+    "source date and KisanOS did not alter, estimate, or infer any price."
+)
+AMIS_REASON_STALE = (
+    "Punjab AMIS source date is older than 24 hours; the quote is shown as stale "
+    "and is not presented as current."
+)
+AMIS_REASON_UNKNOWN_DATE = (
+    "Punjab AMIS returned no source date; the quote is shown as source-reported "
+    "with the date unavailable, not as today's price."
+)
+AMIS_CHECK_CONFIRM = (
+    "Confirm the unit and grade with the mandi before you compare this quote "
+    "with another rate."
+)
+AMIS_CHECK_FRESHNESS = (
+    "Ask your local market committee or arhti for today's rate before relying on "
+    "this number."
+)
+AMIS_STALE_OBSERVED = (
+    "The AMIS source date is older than 24 hours, so this quote is not labelled "
+    "as current."
+)
+AMIS_NO_DATE_OBSERVED = "AMIS returned no source date for this quote."
+AMIS_NOT_AVAILABLE_OBSERVED = (
+    "Punjab AMIS did not return a usable quote today, so only the farmer-entered "
+    "quote is shown."
+)
+NO_AMIS_DIAG = {
+    "enabled": False,
+    "attempted": False,
+    "reason": "not_attempted",
+    "url": "",
+    "cache": "bypass",
+    "market": "",
+    "rows_seen": 0,
+}
+
+
+def _no_quote_reason(amis: dict[str, Any]) -> str:
+    """Why there is no price, for the AMIS-enabled path (fail-closed)."""
+    if not amis.get("enabled"):
+        return NO_QUOTE_REASON
+    reason = str(amis.get("reason") or "")
+    market = str(amis.get("market") or "Bahawalpur")
+    if reason in {"amis_market_not_returned", "amis_row_has_no_prices"}:
+        # Required wording: never name a different city than the one requested.
+        return f"No verified {market} wheat quote was returned by AMIS today."
+    if reason.startswith("amis_fetch_failed"):
+        return (
+            "the official AMIS price page could not be reached, so no verified "
+            "quote is available today."
+        )
+    if reason in {"amis_disabled", ""}:
+        return NO_QUOTE_REASON
+    return "AMIS did not return a usable wheat quote today."
 
 
 def _parse_observed(value: Any, now: datetime) -> tuple[datetime | None, str | None]:
@@ -125,8 +194,10 @@ def _unavailable_result(
     adapter: dict[str, Any],
     payload_seen: bool,
     input_evidence: list[str],
+    extra_flags: list[str] | None = None,
+    amis: dict[str, Any] | None = None,
 ) -> AgentResult:
-    flags = ["no_price_invented", *problems]
+    flags = ["no_price_invented", *problems, *(extra_flags or [])]
     if payload_seen:
         flags.append("adapter_payload_not_used")
     evidence_reason = (
@@ -162,6 +233,7 @@ def _unavailable_result(
             "freshness": "unavailable",
             "quote_problems": list(problems),
             "adapter": adapter,
+            "amis": dict(amis) if amis is not None else dict(NO_AMIS_DIAG),
         },
         input_evidence=input_evidence,
     )
@@ -173,6 +245,7 @@ def _quote_result(
     now: datetime,
     stale_days: int,
     adapter: dict[str, Any],
+    amis: dict[str, Any] | None = None,
 ) -> AgentResult:
     observed: datetime = quote["observed_at"]
     age_hours = (now - observed).total_seconds() / 3600
@@ -230,15 +303,19 @@ def _quote_result(
             "Confirm the quote, unit, market, and observation date with the source before relying on it."
         ]
 
+    observations = [
+        "Farmer reported this quote; KisanOS did not retrieve or verify it.",
+        f"Observed at {observed_text} ({age_days:.1f} day(s) ago).",
+    ]
+    if amis and amis.get("enabled") and amis.get("attempted"):
+        observations.append(AMIS_NOT_AVAILABLE_OBSERVED)
+
     return AgentResult(
         assessment_id=assessment_id,
         agent_id="market",
         status=status,
         summary=summary,
-        observations=[
-            "Farmer reported this quote; KisanOS did not retrieve or verify it.",
-            f"Observed at {observed_text} ({age_days:.1f} day(s) ago).",
-        ],
+        observations=observations,
         possible_causes=[],
         checks=checks,
         evidence_band=band,
@@ -283,34 +360,165 @@ def _quote_result(
                 "SIMULATED DEMO DATA" if simulated else "farmer_reported"
             ),
             "adapter": adapter,
+            "amis": dict(amis) if amis is not None else dict(NO_AMIS_DIAG),
         },
         input_evidence=["Farmer-entered quote"],
+    )
+
+
+def _amis_result(
+    assessment_id: str,
+    quote: dict[str, Any],
+    now: datetime,
+    adapter: dict[str, Any],
+    amis: dict[str, Any],
+) -> AgentResult:
+    """Official AMIS quote -> complete / stale / partial, source-reported.
+
+    The numbers, unit, market, source date and URL come from the AMIS page
+    unchanged; only freshness (from the AMIS source date) decides the status so
+    an older quote is never presented as current.
+    """
+    freshness = quote.get("freshness", "unknown")
+    market = str(quote["market"])
+    unit = str(quote["unit"])
+    date_text = str(quote.get("source_date") or "unavailable")
+    retrieved_at = str(quote.get("retrieved_at") or now.isoformat())
+    source_url = str(quote.get("source_url") or "")
+
+    parts: list[str] = []
+    if quote.get("min_price") is not None:
+        parts.append(f"min {quote['min_price']:g}")
+    if quote.get("max_price") is not None:
+        parts.append(f"max {quote['max_price']:g}")
+    if quote.get("average_price") is not None:
+        parts.append(f"average {quote['average_price']:g}")
+    detail = ", ".join(parts)
+
+    observations = [
+        AMIS_OBSERVED,
+        f"Source date: {date_text}",
+        f"Retrieved at: {retrieved_at}",
+        f"Source URL: {source_url}",
+    ]
+
+    if freshness == "fresh":
+        status = "complete"
+        freshness_label = "fresh"
+        freshness_note = "within 24 hours of the AMIS source date"
+        flags = ["amis_source_reported"]
+        evidence = AMIS_REASON_FRESH
+        checks = [AMIS_CHECK_CONFIRM]
+    elif freshness == "stale":
+        status = "stale"
+        freshness_label = "stale"
+        freshness_note = "older than 24 hours, not presented as a current price"
+        flags = ["amis_source_reported", "stale_quote"]
+        evidence = AMIS_REASON_STALE
+        checks = [AMIS_CHECK_FRESHNESS]
+        observations.insert(1, AMIS_STALE_OBSERVED)
+    else:
+        status = "partial"
+        freshness_label = "date unavailable"
+        freshness_note = "source-reported without a date, not a current-day price"
+        flags = ["amis_source_reported", "source_date_missing"]
+        evidence = AMIS_REASON_UNKNOWN_DATE
+        checks = [AMIS_CHECK_FRESHNESS]
+        observations.insert(1, AMIS_NO_DATE_OBSERVED)
+
+    summary = (
+        f"AMIS wheat price: {market}, {detail}, unit {unit}, source date {date_text}; "
+        f"freshness {freshness_label} ({freshness_note})."
+    )
+
+    return AgentResult(
+        assessment_id=assessment_id,
+        agent_id="market",
+        status=status,
+        summary=summary,
+        observations=observations,
+        possible_causes=[],
+        checks=checks,
+        evidence_band=str(quote.get("evidence_band", "low")),  # type: ignore[arg-type]
+        evidence_reason=evidence,
+        sources=[
+            Source(
+                title=AMIS_SOURCE_TITLE,
+                url=source_url or None,
+                publisher=AMIS_PUBLISHER,
+                geography=market,
+                published_at=quote.get("quoted_at"),
+                retrieved_at=now,
+                source_status="official",
+                note="Source-reported quote; KisanOS did not independently verify it.",
+            )
+        ],
+        provider_or_model="amis_source_reported",
+        version=VERSION,
+        created_at=now,
+        safety_flags=flags,
+        data={
+            "quote": dict(quote),
+            "freshness": freshness,
+            "market": market,
+            "commodity": quote.get("commodity"),
+            "currency": quote.get("currency"),
+            "unit": unit,
+            "min_price": quote.get("min_price"),
+            "max_price": quote.get("max_price"),
+            "average_price": quote.get("average_price"),
+            "source_url": source_url,
+            "source_date": quote.get("source_date"),
+            "quoted_at": quote.get("quoted_at"),
+            "retrieved_at": retrieved_at,
+            "verification_status": "source_reported",
+            "stale_badge": freshness == "stale",
+            "is_official": True,
+            "is_simulated": False,
+            "data_classification": "source_reported",
+            "adapter": adapter,
+            "amis": dict(amis),
+        },
+        input_evidence=["Punjab AMIS price page"],
     )
 
 
 def assess_market(assessment_id: str, intake: dict[str, Any]) -> AgentResult:
     """Deterministic, fail-closed Market card.
 
-    No quote (or an invalid one) -> "Price unavailable"; a valid farmer quote
-    -> complete/stale with a farmer_reported source and disclosed freshness;
-    simulated quotes are tagged SIMULATED DEMO DATA. A price is never
-    invented and adapter payloads are never consumed until an AMIS API
-    contract is verified.
+    Order: the official Punjab AMIS page when AMIS_ENABLED is set (source
+    reported, freshness taken from the AMIS source date), then the
+    farmer-entered quote. No usable AMIS quote -> "Price unavailable" with a
+    reason; a price is never invented, never substituted from another market,
+    and adapter payloads are still never consumed.
     """
     now = datetime.now(UTC)
-    stale_days = get_settings().market_quote_stale_days
+    settings = get_settings()
+    stale_days = settings.market_quote_stale_days
     quote = intake.get("market_quote")
 
+    # 1) Official AMIS source (opt-in, never raises, never invents a price).
+    amis_quote, amis_diag = fetch_amis_quote(
+        market=amis_requested_market(intake),
+        commodity=str(intake.get("crop") or "wheat"),
+        now=now,
+    )
+    if amis_quote is not None:
+        return _amis_result(assessment_id, amis_quote, now, adapter_status(), amis_diag)
+
+    # 2) No official quote -> the farmer-entered quote (unchanged, fail-closed).
     if not quote:
         payload, adapter = _probe_adapter(intake, market="")
         return _unavailable_result(
             assessment_id,
             now,
-            NO_QUOTE_REASON,
+            _no_quote_reason(amis_diag),
             [],
             adapter,
             payload is not None,
             ["No farmer-entered quote"],
+            extra_flags=["amis_unavailable"] if amis_diag.get("enabled") else None,
+            amis=amis_diag,
         )
 
     normalized, problems = _validate_quote(quote, now)
@@ -328,8 +536,12 @@ def assess_market(assessment_id: str, intake: dict[str, Any]) -> AgentResult:
             adapter,
             payload is not None,
             ["Farmer-entered quote failed validation"],
+            amis=amis_diag,
         )
 
-    # The farmer's own quote takes precedence; only report adapter readiness.
+    # The farmer's own quote takes precedence only when AMIS gave nothing;
+    # only report adapter readiness.
     adapter = adapter_status()
-    return _quote_result(assessment_id, normalized, now, stale_days, adapter)
+    return _quote_result(
+        assessment_id, normalized, now, stale_days, adapter, amis=amis_diag
+    )

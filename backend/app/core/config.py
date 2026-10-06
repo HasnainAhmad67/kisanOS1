@@ -41,6 +41,17 @@ class Settings(BaseSettings):
     market_adapter_url: str | None = None
     # Freshness limit for farmer-entered quotes (older -> status "stale").
     market_quote_stale_days: int = Field(default=7, ge=1, le=90)
+
+    # Official Punjab AMIS (Agriculture Marketing Information Service) wheat
+    # price reader. Fail-closed and off by default: when disabled, unreachable
+    # or invalid, the Market Agent returns "Price unavailable" and never a price.
+    amis_enabled: bool = False
+    amis_timeout_sec: float = Field(default=8.0, ge=1, le=30)
+    amis_wheat_url: str = (
+        "http://www.amis.pk/ViewPrices.aspx?searchType=0&commodityId=1"
+    )
+    # Best-effort in-memory cache TTL (never extends source freshness).
+    amis_cache_ttl_sec: int = Field(default=900, ge=0, le=86_400)
     allow_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     demo_mode: bool = True
     # "local" = background asyncio jobs + polling (default, local dev).

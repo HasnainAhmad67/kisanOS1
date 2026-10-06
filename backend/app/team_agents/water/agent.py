@@ -78,23 +78,35 @@ ATTENTION_STATES = {
 
 OPEN_METEO_DOCS_URL = "https://open-meteo.com/en/docs"
 
-# Farmer-answerable field checks. Wording is fixed (i18n maps these exact
-# strings) and every one of them is an observation task, never an irrigation
-# instruction: no amount, timing, duration or schedule is derived from them.
+# Farmer-answerable, scenario-specific field checks. Wording is fixed (i18n
+# maps these exact strings) and every one of them is an observation task,
+# never an irrigation instruction: no amount, timing, duration or schedule is
+# derived from them.
 CHECK_DRAINAGE = (
-    "Inspect low spots and drainage paths; ask local extension staff to review "
-    "persistent standing water or uncertain conditions."
+    "Check for standing water, blocked outlets, and whether the soil remains "
+    "saturated after irrigation/rain."
 )
 CHECK_MOISTURE = (
-    "Check soil moisture by hand at root depth in several representative spots "
-    "and compare affected and healthy-looking areas."
+    "Check root-zone soil by hand at 3\u20135 representative places; compare "
+    "affected and healthy-looking areas."
 )
 CHECK_LAST_IRRIGATION = (
-    "Write down the approximate date of the last irrigation you remember, "
-    "so the record shows when water was last applied."
+    "Record the approximate date of the last irrigation before making a water decision."
+)
+CHECK_DRY = (
+    "Confirm dryness at root depth in several places; surface dryness alone is not enough."
+)
+CHECK_MONITOR = (
+    "Continue checking root-zone moisture and drainage; field observation remains primary."
+)
+CHECK_FORECAST_CONTEXT = (
+    "Forecast is context only; it does not confirm root-zone recharge."
 )
 CHECK_GROWTH_STAGE = (
     "Confirm the wheat growth stage by looking at the plants if it is not recorded."
+)
+CHECK_SOIL_TEXTURE = (
+    "Note the soil texture you can identify (sandy, loamy or clayey) for the record."
 )
 CHECK_PMD_UPDATE = (
     "Check the latest official PMD update and actual farm conditions; "
@@ -109,13 +121,78 @@ CHECK_CONFIRM_CONTEXT = (
     "no timing or amount is calculated from these inputs."
 )
 
-MISSING_INPUTS_LABEL = "Missing inputs"
+# Opening sentence of the partial summary: it names exactly which field
+# details are missing instead of a vague "insufficient information" note.
+MISSING_SUMMARY_SENTENCE = (
+    "Water guidance is limited because these field details are missing"
+)
+MISSING_WEATHER_SENTENCE = (
+    "Water guidance is also limited because there is no fresh weather forecast."
+)
+MISSING_WEATHER_ONLY_SENTENCE = (
+    "Water guidance is limited because there is no fresh weather forecast."
+)
 
 WATER_CONTEXT_LABELS = {
     "field_check_needed",
     "watch_drainage",
     "forecast_context_only",
 }
+
+# Short farmer-facing summary kinds (structured; the UI localizes the label).
+WATER_SUMMARY_KINDS = {
+    "information_needed",
+    "field_check_needed",
+    "watch_drainage",
+    "monitor_conditions",
+}
+
+# Structured "what is needed next" catalogue. Key set is fixed by the
+# contract: growth_stage, last_irrigation_date, soil_texture, soil_moisture,
+# drainage, weather_context. Values are (label, reason, farmer action).
+NEXT_INFORMATION: dict[str, tuple[str, str, str]] = {
+    "soil_moisture": (
+        "Soil moisture",
+        "Soil moisture was not reported, so no water conclusion is drawn from it.",
+        CHECK_MOISTURE,
+    ),
+    "drainage": (
+        "Drainage",
+        "Drainage was not reported, so saturation cannot be judged from the record.",
+        CHECK_DRAINAGE,
+    ),
+    "last_irrigation_date": (
+        "Last irrigation date",
+        "The last irrigation date is missing, so the record does not show when "
+        "water was last applied.",
+        CHECK_LAST_IRRIGATION,
+    ),
+    "growth_stage": (
+        "Growth stage",
+        "The wheat growth stage is not recorded, so stage wording is left out.",
+        CHECK_GROWTH_STAGE,
+    ),
+    "weather_context": (
+        "Fresh weather forecast",
+        "The weather forecast is not fresh, so it is not used as context.",
+        CHECK_PMD_UPDATE,
+    ),
+    "soil_texture": (
+        "Soil texture",
+        "Soil texture was not reported; it is context only and never a threshold.",
+        CHECK_SOIL_TEXTURE,
+    ),
+}
+
+# Display order of the structured next-information items.
+NEXT_INFORMATION_ORDER = (
+    "soil_moisture",
+    "drainage",
+    "last_irrigation_date",
+    "growth_stage",
+    "weather_context",
+    "soil_texture",
+)
 
 
 def _utc_iso(value: datetime | None = None) -> str:
@@ -530,23 +607,30 @@ def _prioritized_checks(
     drainage_known: bool,
     drainage_risk: bool,
     history_known: bool,
-    stage_known: bool,
+    moisture: str,
+    moisture_known: bool,
     weather_fresh: bool,
     rain_recheck_eligible: bool,
 ) -> list[str]:
-    """Two or three prioritized, farmer-answerable checks.
+    """Two or three prioritized, scenario-specific farmer-answerable checks.
 
-    A drainage or saturation report is inspected first; otherwise the
-    root-zone moisture check leads, followed by whichever inputs are
-    actually missing, then the dated weather caveat. Nothing here ever
-    states an irrigation amount, timing, duration or schedule.
+    Exactly one check per situation, in this order: a drainage or saturation
+    report first, then the soil-moisture state (missing, dry or monitored),
+    then whichever inputs are actually missing, then the dated weather caveat.
+    Nothing here ever states an irrigation amount, timing, duration or
+    schedule, and no crop threshold is attached to a number.
     """
     checks: list[str] = []
 
     if drainage_risk:
         checks.append(CHECK_DRAINAGE)
 
-    checks.append(CHECK_MOISTURE)
+    if not moisture_known:
+        checks.append(CHECK_MOISTURE)
+    elif moisture == "dry":
+        checks.append(CHECK_DRY)
+    else:
+        checks.append(CHECK_MONITOR)
 
     if not history_known:
         checks.append(CHECK_LAST_IRRIGATION)
@@ -554,17 +638,94 @@ def _prioritized_checks(
     if not drainage_known and not drainage_risk:
         checks.append(CHECK_DRAINAGE)
 
-    if not stage_known:
-        checks.append(CHECK_GROWTH_STAGE)
-
     if not weather_fresh:
         checks.append(CHECK_PMD_UPDATE)
     elif rain_recheck_eligible:
         checks.append(CHECK_AFTER_RAIN)
     else:
+        checks.append(CHECK_FORECAST_CONTEXT)
+
+    # Defensive: the list above always yields at least two entries, but the
+    # card is never allowed to ship a single check.
+    if len(checks) < 2:
         checks.append(CHECK_CONFIRM_CONTEXT)
 
     return checks[:3]
+
+
+def _english_list(items: list[str]) -> str:
+    """``["a"] -> "a"``, ``["a", "b"] -> "a and b"``, ``3+ -> "a, b, and c"``."""
+    if len(items) <= 1:
+        return "".join(items)
+
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+
+    return f"{', '.join(items[:-1])}, and {items[-1]}"
+
+
+def _missing_information_sentence(
+    field_labels: list[str],
+    weather_missing: bool,
+) -> str:
+    """Exact, farmer-readable statement of which field details are missing.
+
+    Replaces the old generic "Missing inputs: ..." list. The weather gap is
+    reported separately because it is provider context, not a field detail.
+    """
+    if field_labels:
+        sentence = f"{MISSING_SUMMARY_SENTENCE}: {_english_list(field_labels)}."
+
+        if weather_missing:
+            sentence = f"{sentence} {MISSING_WEATHER_SENTENCE}"
+
+        return sentence
+
+    if weather_missing:
+        return MISSING_WEATHER_ONLY_SENTENCE
+
+    return ""
+
+
+def _next_information_needed(
+    *,
+    input_completeness: dict[str, str],
+    weather_fresh: bool,
+) -> list[dict[str, Any]]:
+    """Structured "what is needed next" report.
+
+    Keys are limited to the published contract set; every item carries the
+    farmer-facing label, why it is needed, and an observation task (never an
+    irrigation instruction). Priority follows field relevance, highest first.
+    """
+    availability = {
+        "soil_moisture": input_completeness["soil_moisture"] == "known",
+        "drainage": input_completeness["drainage"] == "known",
+        "last_irrigation_date": input_completeness["irrigation_history"] == "known",
+        "growth_stage": input_completeness["growth_stage"] == "known",
+        "weather_context": weather_fresh,
+        "soil_texture": input_completeness["soil_texture"] == "known",
+    }
+
+    items: list[dict[str, Any]] = []
+
+    for key in NEXT_INFORMATION_ORDER:
+        if availability[key]:
+            continue
+
+        label, reason, farmer_action = NEXT_INFORMATION[key]
+
+        items.append(
+            {
+                "key": key,
+                "label": label,
+                "reason": reason,
+                "farmer_action": farmer_action,
+                "priority": len(items) + 1,
+            }
+        )
+
+    return items
 
 
 def _reported_context_sentence(
@@ -1009,7 +1170,8 @@ def evaluate_water(
         drainage_known=drainage_known,
         drainage_risk=drainage_risk,
         history_known=history_known,
-        stage_known=stage in VALID_STAGES,
+        moisture=moisture,
+        moisture_known=moisture_known,
         weather_fresh=weather_fresh,
         rain_recheck_eligible=rain_recheck_eligible,
     )
@@ -1036,11 +1198,27 @@ def evaluate_water(
         "numeric threshold or irrigation command is used."
     )
 
-    # Summary: name exactly what is missing, or state what was reported.
+    # Summary: name exactly which field details are missing, or state what
+    # was reported. Never a vague "insufficient information" line alone.
     summary_parts: list[str] = []
 
     if missing:
-        summary_parts.append(f"{MISSING_INPUTS_LABEL}: {', '.join(missing)}.")
+        missing_sentence = _missing_information_sentence(
+            [item for item in missing if item != "fresh weather forecast"],
+            weather_missing=not weather_fresh,
+        )
+
+        if missing_sentence:
+            summary_parts.append(missing_sentence)
+        else:  # pragma: no cover - defensive only
+            summary_parts.append(_reported_context_sentence(
+                moisture=moisture,
+                soil_texture=soil_texture,
+                texture_known=soil_texture in VALID_SOIL_TEXTURES,
+                drainage=drainage,
+                last_irrigation_date=last_irrigation_date,
+                weather_fresh=weather_fresh,
+            ))
     else:
         summary_parts.append(
             _reported_context_sentence(
@@ -1063,6 +1241,24 @@ def evaluate_water(
 
     summary = f"Water attention: {attention}. " + " ".join(summary_parts)
 
+    # Structured summary kind: one short, translatable state for the UI.
+    if drainage_risk:
+        water_summary_kind = "watch_drainage"
+    elif missing:
+        water_summary_kind = "information_needed"
+    elif moisture == "dry":
+        water_summary_kind = "field_check_needed"
+    else:
+        water_summary_kind = "monitor_conditions"
+
+    if water_summary_kind not in WATER_SUMMARY_KINDS:
+        water_summary_kind = "information_needed"
+
+    next_information_needed = _next_information_needed(
+        input_completeness=input_completeness,
+        weather_fresh=weather_fresh,
+    )
+
     return {
         "agent_id": AGENT_ID,
         "assessment_id": aid,
@@ -1081,10 +1277,12 @@ def evaluate_water(
 
         "backend_data": {
             "water_attention": attention,
+            "water_summary_kind": water_summary_kind,
             "policy_version": POLICY_VERSION,
             "irrigation_command": None,
             "input_completeness": input_completeness,
             "missing_inputs": missing_inputs,
+            "next_information_needed": next_information_needed,
             "water_context": {
                 **forecast,
                 "label": water_context_label,

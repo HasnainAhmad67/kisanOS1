@@ -33,6 +33,10 @@ _HOW_TO_CHECK = {
         "Look at the plant part described in the report and compare it with a "
         "healthy-looking plant."
     ),
+    "Escalation": (
+        "Share what you recorded with a local agriculture officer or qualified "
+        "expert and follow their guidance."
+    ),
     "Farm Advisor": (
         "Describe the plant part and compare several plants with a healthy-looking area."
     ),
@@ -41,6 +45,85 @@ WHAT_TO_OBSERVE = (
     "What you actually see at each spot, whether it looks the same on plants that look "
     "healthy, and whether it changes between checks."
 )
+
+# The plan's single cross-agent photo action. It is deliberately short and
+# observation-only: the full Vision instructions (retake wording, the card's
+# field checks) stay on the Vision card, so the farmer never reads the same
+# instruction twice on one screen. It never names a cause or an action.
+_VISION_CROSS_CHECK = (
+    "Inspect several leaves on the photographed plant and nearby plants, "
+    "including both leaf surfaces, for spots, yellowing, rust-like marks, or insects."
+)
+
+# Referral reasons that only mean information is missing or thin. They stay on
+# the Crop card for audit but never make the plan recommend an expert review.
+_INFORMATION_ONLY_REASONS = frozenset({"cause_remains_unknown", "evidence_low"})
+
+# Used only when the plan must escalate but no card supplied a usable
+# escalation sentence (e.g. the referral came from the intake alone).
+_ESCALATION_FALLBACK = (
+    "Ask a local agriculture officer or qualified expert to review these signs "
+    "before any action."
+)
+
+# Semantic dedup for plan actions: equivalent checks collapse into one theme
+# and only the highest-priority copy survives, so "check root-zone moisture"
+# from Crop is never repeated verbatim by Water. First matching rule wins.
+_THEME_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("escalation", ("agriculture officer", "expert review", "agriculture expert")),
+    ("forecast", ("forecast", "pmd update", "precipitation")),
+    ("root_zone_soil", ("moisture", "root-zone", "root zone", "root depth")),
+    ("drainage", ("drainage", "standing water", "outlet", "saturated")),
+    ("spreading", ("spreading from the edge", "edge of the affected")),
+    ("leaf_age", ("older and younger", "older and newer")),
+    ("leaf_surface", ("inspect both sides", "both leaf surfaces")),
+    ("spatial_pattern", ("uniform", "patchy")),
+    ("wilting", ("recover", "wilting", "rolling")),
+    ("insects", ("insect", "underside")),
+    ("photo_discrepancy", ("photo did not show clear visible signs",)),
+)
+
+
+def _action_theme(title: str) -> str | None:
+    """Semantic theme of an action, or None when nothing groups it."""
+    lowered = title.casefold()
+
+    for theme, needles in _THEME_RULES:
+        if any(needle in lowered for needle in needles):
+            return theme
+
+    return None
+
+
+def _escalation_action(crop: AgentResult | None) -> tuple[str, str, str, list[str]]:
+    """Domain, title, instruction and labels for the plan's escalation action.
+
+    The Crop card supplies the sentence (its structured escalation sign, or
+    otherwise the standing referral note); the advisor only relays it and
+    falls back to a fixed sentence when no card contributed one. No cause is
+    named and no treatment is implied.
+    """
+    text = _ESCALATION_FALLBACK
+
+    if crop is not None and isinstance(crop.data, dict):
+        signs = crop.data.get("escalation_signs")
+        if isinstance(signs, list) and signs and isinstance(signs[0], str):
+            text = signs[0]
+        else:
+            note = next(
+                (check for check in crop.checks if "agriculture officer" in check.casefold()),
+                None,
+            )
+            if note:
+                text = note
+
+    return (
+        text,
+        "Escalation",
+        "Farmer-reported and/or photo-visible evidence; possibilities remain unconfirmed.",
+        ["crop"],
+    )
+
 
 _FUNCTION_WORDS = frozenset(
     {
@@ -111,16 +194,23 @@ def build_farm_plan(assessment_id: str, intake: dict[str, Any], agents: list[Age
 
     # Referral flags (A2): only cards that actually assessed may escalate, and
     # escalation stays conservative - it names no cause.
-    crop_referral = bool(
-        crop and crop.status in _CROP_USABLE and isinstance(crop.data, dict)
-        and crop.data.get("referral_recommended")
+    #
+    # Expert review is recommended for real escalation criteria only
+    # (spreading, rust-like, unclear/severe, conflicting evidence, a product
+    # question, an out-of-scope crop). Missing or low information alone never
+    # escalates the plan.
+    crop_reasons = frozenset(
+        crop.data.get("referral_reasons") or []
+        if crop and crop.status in _CROP_USABLE and isinstance(crop.data, dict)
+        else []
     )
+    crop_escalation = bool(crop_reasons - _INFORMATION_ONLY_REASONS)
     water_attention = (
         water.data.get("water_attention") if water and isinstance(water.data, dict) else None
     )
     water_referral = bool(water_ok and water_attention == "expert_review")
     water_insufficient = bool(water_ok and water_attention == "insufficient_information")
-    referral = spreading or rust_like or crop_referral or water_referral
+    referral = spreading or rust_like or crop_escalation or water_referral
 
     # ---- Conflicts: surfaced, never forced into consensus (C1-C3) ----
     conflicts: list[dict[str, Any]] = []
@@ -179,65 +269,65 @@ def build_farm_plan(assessment_id: str, intake: dict[str, Any], agents: list[Age
             }
         )
 
-    # ---- Checks: prioritized crop -> water -> vision, capped at 3, deduped ----
-    candidates: list[tuple[str, str, str, list[str]]] = []
+    # ---- Actions: escalation first, then crop -> water -> vision, capped 3 ----
+    # Each action carries domain (evidence_labels[0]), title, instruction
+    # (how_to_check), why and watch_for (what_to_observe). Actions are taken
+    # round-robin across domains so no single agent fills all three slots, and
+    # semantically equivalent checks are merged instead of repeated.
+    lanes: list[list[tuple[str, str, str, list[str]]]] = []
+
+    if referral:
+        lanes.append([_escalation_action(crop)])
+
     if crop and crop.status in _CROP_USABLE:
-        for check in crop.checks:
-            candidates.append(
-                (
-                    check,
-                    "Crop",
-                    "Farmer-reported and/or photo-visible evidence; possibilities remain unconfirmed.",
-                    ["crop"],
-                )
-            )
+        lanes.append(
+            [
+                (check, "Crop", "Farmer-reported and/or photo-visible evidence; possibilities remain unconfirmed.", ["crop"])
+                for check in crop.checks
+            ]
+        )
     if water and water_ok:
-        for check in water.checks:
-            candidates.append(
-                (
-                    check,
-                    "Water",
-                    "Conservative soil and drainage check; no irrigation schedule or command is inferred.",
-                    ["water"],
-                )
-            )
+        lanes.append(
+            [
+                (check, "Water", "Conservative soil and drainage check; no irrigation schedule or command is inferred.", ["water"])
+                for check in water.checks
+            ]
+        )
     if vision and vision_ok:
-        for check in vision.checks:
-            candidates.append(
-                (check, "Vision", "Image evidence is limited to visible signs and cannot confirm cause.", ["vision"])
-            )
-    if vision and vision_ok and "low_quality_image" in (vision.safety_flags or []):
-        # Low-quality photo: surface the retake recommendation first so it is
-        # not pushed out when other checks fill the top-3. (Dedup keeps the
-        # later copy of the same title from being chosen twice.)
-        retake = next((c for c in vision.checks if c.casefold().startswith("retake")), None)
-        if retake:
-            candidates.insert(
-                0,
-                (retake, "Vision", "The photo was low-quality; the visible-sign check is low-confidence only.", ["vision"]),
-            )
+        # ONE short cross-agent observation instead of echoing the Vision
+        # card's own instructions (retake wording, field checks) verbatim, so
+        # the farmer never reads the same instruction twice on one screen.
+        lanes.append(
+            [
+                (_VISION_CROSS_CHECK, "Vision", "Image evidence is limited to visible signs and cannot confirm cause.", ["vision"])
+            ]
+        )
 
     # Defense in depth (B5/D2): never surface chemical, dosing, imperative
     # irrigation, diagnosis-claim, guarantee or trading wording.
-    candidates = [item for item in candidates if not find_unsafe(item[0])]
-
-    if not candidates:
-        candidates = [
-            (
-                "Describe which plant part looks different and compare several plants with a healthy-looking area.",
-                "Farm Advisor",
-                "There is not enough evidence to distinguish a cause.",
-                ["farmer_reported"],
-            )
-        ]
+    lanes = [
+        [item for item in lane if not find_unsafe(item[0])]
+        for lane in lanes
+    ]
+    lanes = [lane for lane in lanes if lane]
 
     chosen: list[FarmCheck] = []
-    seen: set[str] = set()
-    for title, source, why, labels in candidates:
+    seen_titles: set[str] = set()
+    seen_themes: set[str] = set()
+
+    def _append_action(item: tuple[str, str, str, list[str]]) -> None:
+        title, source, why, labels = item
         normalized = title.casefold()
-        if normalized in seen:
-            continue
-        seen.add(normalized)
+        if normalized in seen_titles:
+            return
+
+        theme = _action_theme(title)
+        if theme is not None:
+            if theme in seen_themes:
+                return
+            seen_themes.add(theme)
+
+        seen_titles.add(normalized)
         chosen.append(
             FarmCheck(
                 id=f"check-{len(chosen) + 1}",
@@ -249,8 +339,30 @@ def build_farm_plan(assessment_id: str, intake: dict[str, Any], agents: list[Age
                 evidence_labels=labels,
             )
         )
-        if len(chosen) == 3:
-            break
+
+    deepest = max((len(lane) for lane in lanes), default=0)
+    round_index = 0
+    while len(chosen) < 3 and round_index < deepest:
+        for lane in lanes:
+            if len(chosen) >= 3:
+                break
+            if round_index >= len(lane):
+                continue
+            _append_action(lane[round_index])
+        round_index += 1
+
+    if not chosen:
+        chosen.append(
+            FarmCheck(
+                id="check-1",
+                priority=1,
+                title="Describe which plant part looks different and compare several plants with a healthy-looking area."[:260],
+                how_to_check=_HOW_TO_CHECK["Farm Advisor"],
+                why="There is not enough evidence to distinguish a cause.",
+                what_to_observe=WHAT_TO_OBSERVE,
+                evidence_labels=["farmer_reported"],
+            )
+        )
 
     # ---- Status ladder (A1): expert > insufficient > field_inspection > monitor ----
     if referral:

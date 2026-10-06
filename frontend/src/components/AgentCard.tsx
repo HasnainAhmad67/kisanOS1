@@ -1,6 +1,16 @@
 import { BackendText } from "./BackendText";
 import { MarketQuote, isAmisQuote } from "./MarketQuote";
-import { FieldInformation, WeatherPanel, isWaterCardData, isWeatherCardData } from "./ResultPanels";
+import {
+  CropEvidencePanel,
+  FieldInformation,
+  PhotoScreeningReport,
+  WaterNextInformation,
+  WeatherPanel,
+  isCropCardData,
+  isVisionPhotoReport,
+  isWaterCardData,
+  isWeatherCardData,
+} from "./ResultPanels";
 import { StatusBadge } from "./StatusBadge";
 import { translate, useI18n, type Locale } from "../i18n";
 import type { AgentId, AgentResult } from "../types/backend";
@@ -36,8 +46,13 @@ interface AgentCardProps {
 
 /**
  * One agent result card. Summary, observations and checks stay visible;
- * evidence band + sources + provenance collapse behind a native
- * <details> (accessible, keyboard operable). Safety flags never hide.
+ * evidence band + sources + provenance collapse behind a native <details>
+ * (accessible, keyboard operable), and safety flags move into a collapsed
+ * "Technical details" section — machine-facing context, never guidance.
+ *
+ * The Crop evidence split, the Water "what is needed next" panel and the
+ * Vision photo screening report take over the plain lists they already cover,
+ * so no statement appears twice.
  *
  * UI language drives every label; backend prose is rendered through
  * <BackendText> (Urdu when a known wording exists, English under its own
@@ -46,6 +61,22 @@ interface AgentCardProps {
 export function AgentCard({ agentId, result }: AgentCardProps) {
   const { t, tx, locale } = useI18n();
   const title = translate(locale, `agent.${agentId}` as `agent.${typeof agentId}`);
+  /* Structured panels take over the plain lists they already cover, so a
+     farmer never reads the same statement twice on one card. */
+  const waterData =
+    result && agentId === "water" && isWaterCardData(result.data) ? result.data : null;
+  const cropData =
+    result && agentId === "crop" && isCropCardData(result.data) ? result.data : null;
+  /* Vision's structured photo screening report, when the gateway produced one. */
+  const photoReport =
+    result && agentId === "vision" && isVisionPhotoReport(result.data.photo_report)
+      ? result.data.photo_report
+      : null;
+  /* True when the Water panel renders (and therefore owns the card's checks). */
+  const waterOwnsChecks =
+    waterData !== null &&
+    Array.isArray(waterData.next_information_needed) &&
+    waterData.next_information_needed.length > 0;
 
   return (
     <section
@@ -66,14 +97,25 @@ export function AgentCard({ agentId, result }: AgentCardProps) {
           <p className="agent-card__summary">
             <BackendText text={result.summary} />
           </p>
+          {/* Vision photo screening report: whether the photo could be
+              assessed, the visible-sign category, what the photo does and
+              does not show, the preliminary interpretation, the next field
+              checks, retake guidance and expert-review signs. */}
+          {photoReport ? <PhotoScreeningReport report={photoReport} /> : null}
           {/* Structured provider values (Weather) and the field-completeness
               report (Water) — rendered only for the matching backend shape. */}
           {agentId === "weather" && isWeatherCardData(result.data) ? (
             <WeatherPanel data={result.data} sources={result.sources} />
           ) : null}
-          {agentId === "water" && isWaterCardData(result.data) ? (
-            <FieldInformation data={result.data} />
+          {waterData ? (
+            <>
+              <FieldInformation data={waterData} />
+              <WaterNextInformation data={waterData} checks={result.checks} />
+            </>
           ) : null}
+          {/* Crop evidence split: five headed sections replace the plain
+              observation/check lists below so nothing is stated twice. */}
+          {cropData ? <CropEvidencePanel data={cropData} checks={result.checks} /> : null}
           {/* Live mandi price: the localized unavailable notice, or the quote
               panel when Punjab AMIS returned a verified row. */}
           {agentId === "market" && result.status === "unavailable" ? (
@@ -96,7 +138,27 @@ export function AgentCard({ agentId, result }: AgentCardProps) {
               {t("vision.blocked.hint")}
             </p>
           ) : null}
-          {result.observations.length > 0 ? (
+          {/* Fallback states: an honest, non-blocking note so a missing or
+              unavailable photo never reads as a failed analysis. No sign is
+              claimed for a photo that was not assessed, and the other cards
+              plus the Farm Plan are unaffected. */}
+          {agentId === "vision" &&
+          result.status === "not_assessed" &&
+          !photoReport &&
+          result.safety_flags.includes("manual_fallback_available") ? (
+            <p className="vision-notice vision-notice--info">{t("vision.noPhoto.note")}</p>
+          ) : null}
+          {agentId === "vision" &&
+          (result.status === "unavailable" ||
+            result.safety_flags.includes("model_unavailable")) ? (
+            <p className="vision-notice vision-notice--info">
+              {t("vision.unavailable.note")}
+            </p>
+          ) : null}
+          {/* The photo report replaces the raw observation/check lists: the
+              report already carries what the photo shows and what to check
+              next, in farmer wording and localized. */}
+          {result.observations.length > 0 && !cropData && !photoReport ? (
             <ul className="agent-card__list">
               {result.observations.slice(0, 5).map((observation) => (
                 <li key={observation}>
@@ -105,7 +167,7 @@ export function AgentCard({ agentId, result }: AgentCardProps) {
               ))}
             </ul>
           ) : null}
-          {result.checks.length > 0 ? (
+          {result.checks.length > 0 && !cropData && !waterOwnsChecks && !photoReport ? (
             <>
               <p className="card__meta" style={{ marginBlockStart: "var(--space-3)" }}>
                 {t("agent.fieldChecks")}
@@ -121,11 +183,15 @@ export function AgentCard({ agentId, result }: AgentCardProps) {
           ) : null}
 
           {result.safety_flags.length > 0 ? (
-            <ul className="agent-card__list safety-flags">
-              {result.safety_flags.map((flag) => (
-                <li key={flag}>{txToken(tx, locale, "flag", flag)}</li>
-              ))}
-            </ul>
+            <details className="agent-details agent-details--technical">
+              <summary>{t("agent.technicalDetails")}</summary>
+              <p className="card__meta">{t("agent.safetyFlags")}</p>
+              <ul className="agent-card__list safety-flags">
+                {result.safety_flags.map((flag) => (
+                  <li key={flag}>{txToken(tx, locale, "flag", flag)}</li>
+                ))}
+              </ul>
+            </details>
           ) : null}
 
           {/* Evidence + sources + provenance — collapsible, never hidden content */}

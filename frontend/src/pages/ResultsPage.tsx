@@ -6,6 +6,7 @@ import { Alert } from "../components/Alert";
 import { BackendText } from "../components/BackendText";
 import { Button, LinkButton } from "../components/Button";
 import { Card } from "../components/Card";
+import { InputRecap } from "../components/ResultPanels";
 import { StatusBadge } from "../components/StatusBadge";
 import { useAssessment } from "../hooks/useAssessment";
 import { translate, useI18n, type DictKey, type Locale } from "../i18n";
@@ -195,6 +196,10 @@ export function ResultsPage() {
         <Alert>{t("results.jobFailed")}</Alert>
       ) : null}
 
+      {/* Provenance first: what the farmer reported or selected, echoed back
+          before any agent result so nothing below reads as verified input. */}
+      <InputRecap recap={full?.input_recap} />
+
       <div className="agent-grid">
         {AGENT_ORDER.map((agentId) => (
           <AgentCard
@@ -309,32 +314,40 @@ export function ResultsPage() {
         </Card>
       )}
 
-      <Card tone="info" title={t("exp.title")}>
-        {explanation &&
-        explanation.status === "complete" &&
-        explanation.farmer_summary ? (
-          <>
-            {/* Gemini may answer in Urdu (locale passed at intake) or English;
-                English stays visible under its own label — never hidden. */}
-            <p style={{ margin: 0 }}>
-              {locale === "ur" && explanation.locale === "ur" ? (
-                <span lang="ur">{explanation.farmer_summary}</span>
-              ) : (
-                <BackendText text={explanation.farmer_summary} />
-              )}
-            </p>
-            <p className="card__meta">
-              <BackendText text={explanation.disclaimer} />
-            </p>
-          </>
-        ) : (
-          <p className="empty-note" style={{ margin: 0 }}>
-            {t("exp.unavailable")}
-            {explanationReason ? ` — ${explanationReason}` : ""}.{" "}
-            {t("exp.authoritative")}
+      {/* The optional AI explanation is a nice-to-have: complete text renders
+          normally, and anything else collapses to a neutral note so a missing
+          extra never looks like an error or overshadows the Farm Plan above.
+          Genuine agent failures still surface on their own cards. */}
+      {explanation &&
+      explanation.status === "complete" &&
+      explanation.farmer_summary ? (
+        <Card tone="info" title={t("exp.title")}>
+          {/* Gemini may answer in Urdu (locale passed at intake) or English;
+              English stays visible under its own label — never hidden. */}
+          <p style={{ margin: 0 }}>
+            {locale === "ur" && explanation.locale === "ur" ? (
+              <span lang="ur">{explanation.farmer_summary}</span>
+            ) : (
+              <BackendText text={explanation.farmer_summary} />
+            )}
           </p>
-        )}
-      </Card>
+          <p className="card__meta">
+            <BackendText text={explanation.disclaimer} />
+          </p>
+        </Card>
+      ) : (
+        <details className="agent-details">
+          <summary>{t("exp.title")}</summary>
+          <p className="empty-note" style={{ margin: 0 }}>
+            {t("exp.note")}
+          </p>
+          {explanationReason ? (
+            <p className="card__meta" style={{ marginBlockStart: "var(--space-2)" }}>
+              {explanationReason}
+            </p>
+          ) : null}
+        </details>
+      )}
 
       <div className="stack">
         <LinkButton to="/followup" variant="secondary" block>

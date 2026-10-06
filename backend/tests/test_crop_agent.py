@@ -23,11 +23,15 @@ AID = "11111111-1111-4111-8111-111111111111"
 # Any of these appearing in Crop output would violate the PRD safety contract:
 # products, doses, spray schedules, chemical instructions, irrigation commands,
 # guaranteed outcomes, confirmed diagnoses, or named disease/deficiency claims.
+# "confirmed" is checked as a *claim* (confirmed rust / confirmed diagnosis)
+# rather than as a bare word: the required cautious vocabulary includes the
+# negated form "the cause is not confirmed", which is a disclaimer.
 FORBIDDEN = re.compile(
     r"\b(pesticides?|fungicides?|insecticides?|herbicides?|spray(?:s|ed|ing)?|doses?|dosage|"
     r"fertili[sz]ers?|urea|dap|npk|potash|nitrogen|phosphorus|potassium|sulphur|sulfur|zinc|"
-    r"irrigate\s+now|irrigation\s+command|guaranteed|yield\s+loss|confirmed|deficiency|"
-    r"puccinia|blumeria|stripe\s+rust|leaf\s+rust|powdery\s+mildew)\b"
+    r"irrigate\s+now|irrigation\s+command|guaranteed|yield\s+loss|"
+    r"confirmed\s+(?:rust|disease|diagnosis|infection|cause)|disease\s+(?:is\s+)?detected|"
+    r"deficiency|puccinia|blumeria|stripe\s+rust|leaf\s+rust|powdery\s+mildew)\b"
     r"|کیڑے\s?مار|سپرے|کھاد|زرعی\s?دوا|دوائی|ڈوز",
     re.IGNORECASE,
 )

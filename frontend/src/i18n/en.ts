@@ -95,17 +95,26 @@ export const en = {
   "stage.milk": "Milk",
   "stage.dough": "Dough",
   "stage.maturity": "Maturity",
+  "stage.not_sure": "Not sure",
 
   /* ------------------------------------------------------- options */
+  "crop.wheat": "Wheat",
+  "area.bahawalpur_sadar": "Bahawalpur Sadar",
+  "area.ahmadpur_east": "Ahmadpur East",
+  "area.yazman": "Yazman",
+  "area.hasilpur": "Hasilpur",
+  "area.khairpur_tamewali": "Khairpur Tamewali",
   "soil.sandy": "Sandy",
   "soil.loamy": "Loamy",
   "soil.clayey": "Clayey",
   "moisture.dry": "Dry",
   "moisture.moist": "Moist",
   "moisture.wet": "Wet",
+  "moisture.not_sure": "Not sure",
   "drainage.good": "Good",
   "drainage.poor": "Poor",
   "drainage.waterlogging": "Waterlogging",
+  "drainage.not_sure": "Not sure",
   "onset.today": "Today",
   "onset.recent": "Within the last few days",
   "onset.over_a_week": "Over a week ago",
@@ -208,6 +217,23 @@ export const en = {
   "results.errorEmpty":
     "Results could not be loaded — check your connection and try once more.",
 
+  /* ----------------------------------------------------- input recap */
+  "recap.title": "Your reported field information",
+  "recap.note":
+    "Farmer-reported or farmer-selected information — shown as entered, not verified by the system.",
+  "recap.crop": "Crop",
+  "recap.area": "Area",
+  "recap.observedAt": "Observation date",
+  "recap.growthStage": "Growth stage",
+  "recap.lastIrrigation": "Last irrigation",
+  "recap.soilMoisture": "Soil moisture",
+  "recap.drainage": "Drainage",
+  "recap.symptoms": "Reported symptoms",
+  "recap.onset": "Symptom start",
+  "recap.spreading": "Spreading",
+  "recap.photos": "Photos added",
+  "recap.photoViews": "Photo views",
+
   /* -------------------------------------------------------- farm plan */
   "plan.title": "Farm Plan",
   "plan.fieldStatus": "Field status",
@@ -225,6 +251,8 @@ export const en = {
   "exp.title": "Explanation",
   "exp.unavailable": "Explanation unavailable",
   "exp.authoritative": "The farm plan above stays authoritative.",
+  "exp.note":
+    "Optional explanation is unavailable. The Farm Plan above remains the authoritative result.",
   "exp.consent_missing": "explanation consent was not given",
   "exp.disabled": "the explanation service is switched off",
   "exp.key_missing": "no explanation key is configured",
@@ -245,6 +273,51 @@ export const en = {
   "agent.fieldChecks": "Field checks",
   "agent.evidenceSources": "Evidence & sources",
   "agent.safetyFlags": "Safety flags",
+  "agent.technicalDetails": "Technical details",
+
+  /* --------------------------------- crop evidence split (Crop card) */
+  "crop.evidence.heading": "Crop evidence, split by source",
+  "crop.evidence.farmer": "Farmer-reported symptoms",
+  "crop.evidence.photo": "Visible in the photo",
+  "crop.evidence.possibilities": "Screening possibilities",
+  "crop.evidence.checks": "Field checks",
+  "crop.evidence.escalation": "Signs that need expert review",
+
+  /* ------------------------- photo screening report (Vision card) */
+  "vision.report.heading": "Photo screening report",
+  "vision.report.status.assessable": "The photo can be assessed",
+  "vision.report.status.limited": "The photo can be partly assessed",
+  "vision.report.status.not_assessable": "The photo could not be assessed",
+  "vision.report.category.healthy_looking": "Generally healthy-looking",
+  "vision.report.category.rust_like_marks": "Rust-like visible signs",
+  "vision.report.category.unclear": "Unclear",
+  "vision.report.visible": "What is visible in the photo",
+  "vision.report.notVisible": "What is not clearly visible in the photo",
+  "vision.report.interpretation": "Preliminary interpretation",
+  "vision.report.fieldChecks": "Next check in the field",
+  "vision.report.retake": "When to retake the photo",
+  "vision.report.expert": "Signs that mean expert review",
+  "vision.report.subject": "Photo subject",
+  "vision.report.scope": "Screening scope",
+  "vision.report.subject.wheat_leaf": "Wheat leaf",
+  "vision.report.subject.wheat_ear_or_head": "Wheat ear/head",
+  "vision.report.subject.whole_field_or_distant_crop": "Whole field or distant crop",
+  "vision.report.subject.other_plant_part": "Another plant part",
+  "vision.report.subject.unclear": "Could not be identified",
+  "vision.report.scope.leaf_screening_applicable": "Leaf screening applies to this image",
+  "vision.report.scope.leaf_screening_not_applicable": "Leaf screening is not applicable to this image",
+  "vision.report.scope.subject_unclear": "The photo subject could not be identified",
+  "vision.report.scopeNotice.ear": "The photo is clear, but it shows a wheat ear/head rather than a leaf.",
+  "vision.report.scopeNotice.other": "The photo is clear, but it does not show a close-up wheat leaf.",
+  "vision.report.quality": "Photo quality",
+  "vision.report.scopeShort": "Leaf-symptom screening",
+  "vision.report.scopeShort.leaf_screening_applicable": "Applies to this image",
+  "vision.report.scopeShort.leaf_screening_not_applicable": "Not applicable to this image",
+  "vision.report.scopeShort.subject_unclear": "Subject not identified",
+  "vision.noPhoto.note":
+    "No photo was added, so Vision was not assessed. The other results and your Farm Plan are still complete.",
+  "vision.unavailable.note":
+    "Photo screening is unavailable right now. The other results and your Farm Plan are still complete.",
 
   /* ------------------------------------- market quote (Punjab AMIS) */
   "market.quote.heading": "Mandi quote",
@@ -297,6 +370,30 @@ export const en = {
   "water.context.field_check_needed": "Field check needed",
   "water.context.watch_drainage": "Watch drainage",
   "water.context.forecast_context_only": "Forecast is context only",
+
+  /* --------------------------------- water: what is needed next panel */
+  "water.next.heading": "What is needed next",
+  "water.next.infoNeeded": "More information needed",
+  "water.next.fieldCheck": "Next field check",
+  "water.next.label.soil_moisture": "Soil moisture",
+  "water.next.label.drainage": "Drainage",
+  "water.next.label.last_irrigation_date": "Last irrigation date",
+  "water.next.label.growth_stage": "Growth stage",
+  "water.next.label.weather_context": "Fresh weather forecast",
+  "water.next.label.soil_texture": "Soil texture",
+  "water.next.reason.soil_moisture":
+    "Soil moisture was not reported, so no water conclusion is drawn from it.",
+  "water.next.reason.drainage":
+    "Drainage was not reported, so saturation cannot be judged from the record.",
+  "water.next.reason.last_irrigation_date":
+    "The last irrigation date is missing, so the record does not show when water was last applied.",
+  "water.next.reason.growth_stage":
+    "The wheat growth stage is not recorded, so stage wording is left out.",
+  "water.next.reason.weather_context":
+    "The weather forecast is not fresh, so it is not used as context.",
+  "water.next.reason.soil_texture":
+    "Soil texture was not reported; it is context only and never a threshold.",
+  "water.next.empty": "Nothing further is needed right now.",
 
   /* ------------------------------------------- vision low-quality notices */
   "vision.soft.title": "Low-quality photo — preliminary visible-sign check",

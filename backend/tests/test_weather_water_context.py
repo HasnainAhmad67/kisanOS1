@@ -366,7 +366,11 @@ def test_water_poor_drainage_watches_drainage_without_irrigation_advice(drainage
 
     assert result.data["water_context"]["label"] == "watch_drainage"
     assert result.data["water_attention"] == "inspect_field"
-    assert "drainage" in result.checks[0].lower()
+    # The leading check is the drainage/saturation inspection. Its fixed
+    # farmer wording names standing water and outlets rather than the bare
+    # word "drainage", so either spelling proves the drainage check leads.
+    leading = result.checks[0].lower()
+    assert "drainage" in leading or "standing water" in leading
     assert "drainage_or_saturation_inspection" in result.safety_flags
     assert result.data["irrigation_command"] is None
     assert "irrigate" not in json.dumps(

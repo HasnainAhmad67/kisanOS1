@@ -204,7 +204,13 @@ def test_clear_512x512_photo_is_clear(monkeypatch):
     assert result.status == "complete"
     assert "low_quality_image" not in result.safety_flags
     assert result.data["diagnostics"]["quality_state"] == "clear"
-    assert result.data["diagnostics"]["mapped_visible_finding"] == "healthy_looking"
+    # The fixture is a wheat ear/head shot (see fixtures README), so leaf
+    # screening is out of scope and the public app-safe finding is "unclear";
+    # the raw label stays in diagnostics as technical data only.
+    assert result.data["diagnostics"]["raw_top_label"] == "Wheat___Healthy"
+    assert result.data["diagnostics"]["mapped_visible_finding"] == "unclear"
+    assert result.data["photo_subject"] == "wheat_ear_or_head"
+    assert result.data["screening_scope"] == "leaf_screening_not_applicable"
 
 
 def test_96x96_photo_runs_inference_with_soft_warning(monkeypatch):

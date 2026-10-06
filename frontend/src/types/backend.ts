@@ -340,17 +340,137 @@ export type WaterContextLabel =
   | "watch_drainage"
   | "forecast_context_only";
 
+/** Short, structured state of the Water card summary (localized in the UI). */
+export type WaterSummaryKind =
+  | "information_needed"
+  | "field_check_needed"
+  | "watch_drainage"
+  | "monitor_conditions";
+
+/** Machine key of one structured "what is needed next" item. */
+export type NextInformationKey =
+  | "growth_stage"
+  | "last_irrigation_date"
+  | "soil_texture"
+  | "soil_moisture"
+  | "drainage"
+  | "weather_context";
+
+/** One structured item of `data.next_information_needed` (never an instruction). */
+export interface NextInformationItem {
+  key: NextInformationKey;
+  label: string;
+  reason: string;
+  farmer_action: string;
+  priority: number;
+}
+
 /** `data` of the Water card, including the structured completeness report. */
 export interface WaterCardData {
   water_attention?: string;
+  water_summary_kind?: WaterSummaryKind;
   irrigation_command?: null;
   input_completeness: InputCompleteness;
   /** Machine keys of the inputs that are missing, in priority order. */
   missing_inputs: string[];
+  /** Structured "what is needed next" report (labels localized in the UI). */
+  next_information_needed?: NextInformationItem[];
   water_context?: {
     label?: WaterContextLabel;
     status?: string;
     [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+/** App-safe visible class read by the Crop agent from the Vision card. */
+export type VisionFinding =
+  | "absent"
+  | "other"
+  | "healthy_looking"
+  | "rust_like_pustules"
+  | "unclear";
+
+/** Whether the uploaded photo could be screened at all. */
+export type PhotoAssessmentStatus = "assessable" | "limited" | "not_assessable";
+
+/**
+ * What the photo appears to show. `wheat_leaf` is only ever claimed for a
+ * frame-filling leaf close-up in leaf-screening scope; an ear/head, a
+ * whole-field shot, another plant part or an unreadable subject get their own
+ * code so a leaf result can never be shown for a non-leaf photo.
+ */
+export type PhotoSubject =
+  | "wheat_leaf"
+  | "wheat_ear_or_head"
+  | "whole_field_or_distant_crop"
+  | "other_plant_part"
+  | "unclear";
+
+/**
+ * Whether the leaf-sign screening applies to this photo at all: applicable
+ * only for a leaf close-up, not applicable for an ear/head or a wide view,
+ * subject_unclear when the plant part could not be identified.
+ */
+export type ScreeningScope =
+  | "leaf_screening_applicable"
+  | "leaf_screening_not_applicable"
+  | "subject_unclear";
+
+/** Closed set of reportable visible-sign categories — never a disease name. */
+export type VisibleSignCategory = "healthy_looking" | "rust_like_marks" | "unclear";
+
+/** Quality gate tier of the photo that produced this report. */
+export type PhotoQuality = "clear" | "limited" | "unusable";
+
+/**
+ * `data.photo_report` on the Vision card: the farmer-facing screening report.
+ * Enums are codes (localized in the UI); list items and the interpretation are
+ * fixed backend sentences rendered through `<BackendText>`.
+ */
+export interface PhotoReport {
+  assessment_status: PhotoAssessmentStatus;
+  photo_subject: PhotoSubject;
+  /** Whether leaf-sign screening applies to this photo. */
+  screening_scope: ScreeningScope;
+  /** Farmer-safe reasons for the scope (never model labels or scores). */
+  scope_reasons: string[];
+  visible_sign_category: VisibleSignCategory;
+  photo_quality: PhotoQuality;
+  /** What the photo does show. */
+  what_is_visible: string[];
+  /** What could not be seen — or why the photo could not be read. */
+  what_is_not_clearly_visible: string[];
+  /** One- or two-sentence preliminary interpretation, never a diagnosis. */
+  screening_interpretation: string;
+  /** Farmer-answerable next checks in the field (max 3). */
+  field_checks: string[];
+  /** Present only when the photo must be retaken. */
+  retake_guidance: string | null;
+  /** Signs that mean an expert should look; empty when none apply. */
+  expert_review_signs: string[];
+}
+
+/** `data` of the Crop card: the evidence split plus its screening structure. */
+export interface CropCardData {
+  /** Symptom tags chosen by the farmer, labelled as reports. */
+  farmer_reported_symptoms?: string[];
+  /** Vision observations (plus a photo limitation note when the photo is unclear). */
+  photo_visible_findings?: string[];
+  /** Screening possibilities only — never confirmed causes. */
+  crop_possibilities?: string[];
+  /** Farmer-answerable field checks, max 3, no duplicates. */
+  field_checks?: string[];
+  /** Signs that need expert review; empty when nothing warrants one. */
+  escalation_signs?: string[];
+  vision_finding?: VisionFinding;
+  referral_recommended?: boolean;
+  referral_reasons?: string[];
+  evidence_labels?: {
+    farmer_reported?: string[];
+    photo_visible?: string[];
+    rule_based_check?: string[];
+    [key: string]: string[] | undefined;
   };
   [key: string]: unknown;
 }
@@ -423,6 +543,35 @@ export interface AIExplanation {
 
 /* ---------------------------------------------------------------- results */
 
+/**
+ * `input_recap` on a stored result: exactly what the farmer entered or
+ * selected, echoed back for the "Your reported field information" section.
+ *
+ * Every key is optional because each is present only when the intake carried
+ * it — the recap can therefore never show a value nobody supplied. Unknowns
+ * are the farmer's own explicit "not sure" choices, never an inferred default.
+ */
+export interface InputRecap {
+  crop?: string;
+  area_code?: string;
+  growth_stage?: string;
+  /** Observation date as reported (YYYY-MM-DD). */
+  observed_at?: string;
+  /** "known" or "not_sure" — the farmer's own selection. */
+  irrigation_history?: string;
+  /** Present only when irrigation_history is "known". */
+  last_irrigation_date?: string;
+  soil_moisture?: string;
+  drainage?: string;
+  symptom_onset?: string;
+  symptoms_spreading?: string;
+  symptoms?: string[];
+  photo_count?: number;
+  photo_views?: string[];
+  notes_included?: boolean;
+  [key: string]: unknown;
+}
+
 /** Backend `AssessmentResults` once the job has a stored result. */
 export interface AssessmentResults {
   assessment_id: string;
@@ -432,7 +581,7 @@ export interface AssessmentResults {
   agents: AgentResult[];
   farm_plan: FarmPlan | null;
   ai_explanation: AIExplanation | null;
-  input_recap: Record<string, unknown>;
+  input_recap: InputRecap;
   local_timezone: string;
 }
 

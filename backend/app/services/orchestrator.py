@@ -192,6 +192,59 @@ def _load_context(job_id: str) -> tuple[str, dict, list[dict]]:
         return assessment.id, intake, records
 
 
+def _input_recap(intake: dict, images: list[dict]) -> dict:
+    """What the farmer actually reported, for the Results recap.
+
+    Additive and honest: a key is present only when the intake carried it, so
+    the recap can never show a value nobody supplied. Unknowns are only the
+    farmer's own explicit "not_sure" selections - never an invented default.
+    """
+    recap: dict = {
+        "photo_count": len(images),
+        "notes_included": bool(intake.get("notes")),
+    }
+
+    for key in (
+        "crop",
+        "area_code",
+        "growth_stage",
+        "soil_moisture",
+        "drainage",
+        "symptom_onset",
+        "symptoms_spreading",
+    ):
+        value = intake.get(key)
+        if isinstance(value, str) and value:
+            recap[key] = value
+
+    observed_at = intake.get("observed_at")
+    if isinstance(observed_at, str) and observed_at:
+        recap["observed_at"] = observed_at[:10]
+
+    irrigation = intake.get("irrigation_history")
+    if irrigation in {"known", "not_sure"}:
+        # "known" always ships a date (intake guardrail); "not_sure" is the
+        # farmer's explicit unknown and is shown as such.
+        recap["irrigation_history"] = irrigation
+        last_irrigation = intake.get("last_irrigation_date")
+        if isinstance(last_irrigation, str) and last_irrigation:
+            recap["last_irrigation_date"] = last_irrigation
+
+    symptoms = intake.get("symptoms")
+    if isinstance(symptoms, list) and symptoms:
+        recap["symptoms"] = [str(item)[:80] for item in symptoms if str(item).strip()]
+
+    views = [
+        str(image.get("view_type"))
+        for image in images
+        if isinstance(image, dict) and image.get("view_type")
+    ]
+    if views:
+        recap["photo_views"] = views
+
+    return recap
+
+
 async def _run_job(job_id: str) -> None:
     assessment_id = _job_assessment_id(job_id)
     try:
@@ -295,16 +348,7 @@ async def _run_job(job_id: str) -> None:
             agents=agents,
             farm_plan=plan,
             ai_explanation=ai_explanation,
-            input_recap={
-                "crop": intake["crop"],
-                "area_code": intake["area_code"],
-                "growth_stage": intake["growth_stage"],
-                "irrigation_history": intake["irrigation_history"],
-                "symptom_onset": intake["symptom_onset"],
-                "symptoms_spreading": intake["symptoms_spreading"],
-                "photo_count": len(images),
-                "notes_included": bool(intake.get("notes")),
-            },
+            input_recap=_input_recap(intake, images),
             local_timezone=intake.get("timezone", "Asia/Karachi"),
         )
         payload = _json(result)

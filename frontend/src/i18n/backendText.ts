@@ -46,6 +46,12 @@ export const backendEn = {
     "Record what you observed after checking; if signs spread, remain unclear, or appear severe, ask a local agriculture officer to review them.",
   "plan.fallback_check":
     "Describe which plant part looks different and compare several plants with a healthy-looking area.",
+  "plan.how.escalation":
+    "Share what you recorded with a local agriculture officer or qualified expert and follow their guidance.",
+  "plan.escalation.fallback":
+    "Ask a local agriculture officer or qualified expert to review these signs before any action.",
+  "plan.check.vision_cross":
+    "Inspect several leaves on the photographed plant and nearby plants, including both leaf surfaces, for spots, yellowing, rust-like marks, or insects.",
 
   /* ---------------------------------------------------------- conflicts */
   "conflict.wet_soil":
@@ -110,6 +116,119 @@ export const backendEn = {
     "The private model must return crop_detected='wheat'; missing or unsupported crop output abstains.",
   "vision.reason.unsafe_text":
     "A model output contained unsupported diagnostic or action language and was rejected.",
+
+  /* ------------------------------ vision: photo screening report strings */
+  "vision.report.retake":
+    "Take a clear close-up photo of one affected leaf in daylight, with the leaf filling most of the frame.",
+  "vision.report.visible.leaf_even": "Leaf surface appears generally even in colour.",
+  "vision.report.visible.no_rust":
+    "No clear rust-like raised marks are visible in this photo.",
+  "vision.report.visible.no_spots":
+    "No large distinct spots are clearly visible in this photo.",
+  "vision.report.interp.healthy":
+    "This photo does not show clear visible warning signs. A single photo cannot rule out problems elsewhere in the field.",
+  "vision.report.checks.both_sides":
+    "Inspect both sides of several leaves in this area for any marks or spots.",
+  "vision.report.checks.compare_plants":
+    "Compare this plant with a few nearby plants in the same field.",
+  "vision.report.visible.rust_marks":
+    "Scattered orange-brown round marks are visible on the leaf surface.",
+  "vision.report.not_visible.cause": "The cause of these marks cannot be seen in a photo.",
+  "vision.report.interp.rust":
+    "Rust-like visible signs may be present. The cause is not confirmed from a photo alone.",
+  "vision.report.checks.rust_1":
+    "Inspect both sides of 5–10 affected leaves for raised orange, yellow, or brown marks.",
+  "vision.report.checks.rust_2": "Compare affected plants with nearby healthy-looking plants.",
+  "vision.report.checks.rust_3": "Check whether newer leaves are becoming affected.",
+  "vision.report.expert.spread": "Marks spread quickly",
+  "vision.report.expert.new_leaves": "New leaves become affected",
+  "vision.report.expert.larger_area": "A larger part of the field is affected",
+  "vision.report.interp.unclear":
+    "Photo quality was adequate, but the visible sign could not be classified by this screening model.",
+  "vision.report.interp.unclassified":
+    "Photo quality was adequate, but the visible sign reported on the photo is not one of the healthy-looking or rust-like signs this screening reports.",
+  "vision.report.visible.leaf_seen": "A plant leaf is visible in the photo.",
+  "vision.report.not_visible.unknown_sign":
+    "This screening could not say which visible sign is present.",
+  "vision.report.interp.limited":
+    "A preliminary visible-sign screening was still performed on this photo. Because the photo quality is limited, this photo cannot rule out visible signs.",
+  "vision.report.not_visible.elsewhere":
+    "A single photo cannot show conditions elsewhere in the field.",
+  "vision.report.interp.blocked":
+    "No uploaded photo passed the photo-quality checks, so no visible-sign screening was performed.",
+  "vision.report.not_visible.nothing":
+    "No photo could be reviewed, so nothing was checked.",
+  "vision.quality.too_large": "The photo file is too big. Please send a photo under 10 MB.",
+  "vision.quality.bad_file":
+    "This file could not be opened as a photo. Please send a JPG or PNG.",
+  "vision.quality.low_resolution":
+    "The photo is too small. Please take it with the normal camera at full quality.",
+  "vision.quality.blurry":
+    "The photo is blurry. Hold the phone steady and tap the leaf to focus.",
+  "vision.quality.too_dark": "The photo is too dark. Please take it in daylight.",
+  "vision.quality.too_bright":
+    "The photo is too bright or has glare. Please avoid direct sun on the camera.",
+  "vision.quality.no_plant":
+    "No crop is visible. Please move closer so the leaves fill most of the photo.",
+  "vision.quality.image_unreadable":
+    "This photo could not be read. Please send a JPG or PNG photo.",
+  "vision.quality.no_image_supplied":
+    "No photo was supplied, so nothing could be checked.",
+
+  /* --------------- vision: plant part / screening scope (leaf vs ear) */
+  "vision.scope.leaf_fill":
+    "The photo is a close-up that fills the frame with leaf material, so leaf-sign screening applies.",
+  "vision.scope.ear_straw":
+    "Golden straw-coloured head texture fills the frame, so this photo shows a wheat ear/head rather than a leaf.",
+  "vision.scope.ear_shape":
+    "The photo shows an upright wheat plant against a background instead of a leaf close-up, so it shows an ear/head rather than a leaf.",
+  "vision.scope.ear_ripe":
+    "The photo is a clear close-up filled with mature golden wheat head colour rather than leaf material, so it shows an ear/head rather than a leaf.",
+  "vision.scope.field_sky":
+    "A horizon and open sky are visible, so this is a wider field view rather than a leaf close-up.",
+  "vision.scope.field_patches":
+    "The crop appears as many small separate patches rather than one close-up, so this is a wider field view.",
+  "vision.scope.not_leaf":
+    "The frame does not fill with leaf material, so leaf-sign screening was not applied.",
+  "vision.scope.other_plant":
+    "Plant material is visible, but this photo does not show a close-up wheat leaf.",
+  "vision.scope.no_wheat":
+    "Wheat was not established from this photo, so wheat leaf screening was not applied.",
+  "vision.scope.subject_unclear":
+    "The photo does not show enough detail to identify the plant part.",
+  "vision.scope.mixed":
+    "The photos do not all show the same subject; one clear close-up of a single affected leaf is needed.",
+  "vision.scope.quality_failed":
+    "No photo passed the quality checks, so the photo subject could not be identified.",
+  "vision.scope.no_photo":
+    "No photo was supplied, so the photo subject could not be identified.",
+  "vision.report.not_visible.scope": "Leaf symptoms cannot be assessed from this photo.",
+  "vision.report.checks.scope":
+    "Inspect the leaves on this plant and a few nearby plants for any marks or spots.",
+  "vision.report.retake.scope":
+    "Take a clear daylight close-up of one affected leaf, with the leaf filling most of the frame.",
+  "vision.report.visible.ear": "A mature wheat ear/head is visible in this photo.",
+  "vision.report.not_visible.ear":
+    "Leaf symptoms cannot be assessed because this image does not show a close-up leaf.",
+  "vision.report.interp.ear": "This is a clear photo of a mature wheat ear/head, not a leaf.",
+  "vision.report.visible.field": "Crop context is visible across the field in this photo.",
+  "vision.report.interp.field":
+    "This image is clear, but it shows the crop from a distance. Leaf-level symptoms cannot be assessed from a whole-field or distant photo.",
+  "vision.report.visible.other_plant":
+    "Plant material is visible, but it is not a close-up wheat leaf.",
+  "vision.report.interp.other_plant":
+    "This photo does not show a close-up wheat leaf, so leaf-sign screening was not applied.",
+  "vision.report.visible.subject_unclear": "The subject of this photo could not be identified clearly.",
+  "vision.report.interp.subject_unclear":
+    "The photo subject could not be identified, so leaf-sign screening was not applied.",
+  "vision.report.interp.scope_limited":
+    "The photo quality is limited, and this screening is designed for close-up leaf signs, so leaf symptoms were not assessed from this photo.",
+  "vision.report.obs.ear":
+    "Wheat ear/head visible in the photo; leaf-sign screening was not applied.",
+  "vision.report.obs.field":
+    "Crop visible from a distance in the photo; a close-up of one affected leaf is needed.",
+  "vision.report.obs.other_plant":
+    "Plant material visible in the photo, but it is not a close-up wheat leaf.",
 
   /* ----------------------------------------------------- weather / crop */
   "weather.summary.context":
@@ -189,9 +308,9 @@ export const backendEn = {
   "crop.check.older_younger":
     "Compare older and younger leaves and note whether the change starts on the old or the new leaves.",
   "crop.check.uniform_patchy":
-    "Check whether the pattern is uniform across the field or patchy, and press the root-zone soil by hand in an affected spot and in a healthy-looking spot.",
+    "Check whether the pattern is uniform across the field or patchy.",
   "crop.check.both_sides":
-    "Inspect both sides of several affected leaves: note the colour of any spots or pustules, where they sit on the leaf, and whether healthy-looking plants nearby are unaffected.",
+    "Inspect both sides of several affected leaves: note the shape and colour of any spots, where they sit on the leaf, and whether both leaf surfaces are affected.",
   "crop.check.rolling_wilting":
     "Note whether leaves are rolling or plants are wilting, and whether they recover overnight.",
   "crop.check.insects":
@@ -206,14 +325,59 @@ export const backendEn = {
     "Describe which plant part looks different and whether the pattern is uniform or patchy.",
   "crop.check.compare_healthy":
     "Compare several affected plants with a healthy-looking area.",
+  "crop.check.root_zone":
+    "Check root-zone soil moisture, drainage, and roots before attributing a cause.",
+  "crop.check.compare_dry":
+    "Compare dry plants with healthy-looking plants at several locations.",
+  "crop.check.dry_origin":
+    "Record whether the drying starts from leaf tips, leaf margins, or whole leaves.",
+  "crop.check.patches":
+    "Compare affected and unaffected patches at several locations.",
+  "crop.check.rust_1":
+    "Inspect both sides of 5–10 affected leaves and record whether raised orange, yellow, or brown marks are present.",
+  "crop.check.rust_2":
+    "Compare affected plants with nearby healthy-looking plants and note whether marks are scattered or arranged in lines.",
+  "crop.check.rust_3": "Check whether newer leaves are becoming affected.",
+  "crop.check.photo_discrepancy":
+    "The uploaded photo did not show clear visible signs, while the farmer reported symptoms. Check multiple affected plants; the photo does not rule out a field problem.",
+  "crop.check.photo_limit":
+    "The uploaded photo did not show readable details, so no visible sign was read from it; this limits the photo evidence only and says nothing about the field.",
+  "crop.photo.ear_scope":
+    "A wheat ear/head is visible in the photo. The image does not show leaf symptoms for screening.",
   "crop.check.referral":
-    "Ask a local agriculture officer or qualified expert to review spreading, rust-like, severe, or unclear symptoms and any treatment question before any action.",
+    "Ask a local agriculture officer or qualified expert to review spreading, rust-like, severe, or unclear symptoms before any action.",
+
+  /* ------------------------------------------ crop: screening possibilities */
+  "crop.poss.water_stress": "Possible water stress",
+  "crop.poss.nutrient_stress": "Possible nutrient stress",
+  "crop.poss.premature_drying": "Premature drying; multiple causes possible",
+  "crop.poss.rust_symptoms": "Rust-like symptoms",
+  "crop.poss.leaf_spots": "Possible leaf spots or disease",
+  "crop.poss.insect_damage": "Possible insect damage",
+  "crop.poss.rust":
+    "Rust-like leaf signs need field verification; the cause is not confirmed.",
+  "crop.poss.no_distinction": "No cause is distinguished by the available evidence",
+  "crop.poss.cannot_assess": "Cause cannot be assessed from the information provided",
+
+  /* --------------------------------------------------- crop: escalation signs */
+  "crop.escalation.rust":
+    "Seek local expert review if marks spread quickly, appear on new leaves, or affect a larger part of the field.",
+  "crop.escalation.spreading":
+    "Seek local expert review if the affected area keeps spreading quickly or new plants become affected.",
+  "crop.escalation.conflict":
+    "Ask a local agriculture officer to review signs that do not fit together before any action.",
+  "crop.escalation.stage":
+    "Ask a local agriculture officer to review symptoms seen at the heading-to-grain stages.",
+  "crop.escalation.chemical":
+    "Ask a local agriculture officer to answer any product or input question before acting.",
+  "crop.escalation.unclear":
+    "Ask a local agriculture officer to review unclear or severe-looking signs before any action.",
 
   /* ------------------------------------------------ water: field checks */
   "water.check.soil_moisture":
-    "Check soil moisture by hand at root depth in several representative spots and compare affected and healthy-looking areas.",
+    "Check root-zone soil by hand at 3–5 representative places; compare affected and healthy-looking areas.",
   "water.check.drainage_paths":
-    "Inspect low spots and drainage paths; ask local extension staff to review persistent standing water or uncertain conditions.",
+    "Check for standing water, blocked outlets, and whether the soil remains saturated after irrigation/rain.",
   "water.check.after_rain":
     "After rainfall is actually observed, re-check root-zone soil moisture; do not treat the forecast as proof of recharge.",
   "water.check.pmd_update":
@@ -221,11 +385,19 @@ export const backendEn = {
   "water.check.confirm_stage":
     "Confirm stage and irrigation history locally; no timing or amount is calculated from these inputs.",
   "water.check.last_irrigation":
-    "Write down the approximate date of the last irrigation you remember, so the record shows when water was last applied.",
+    "Record the approximate date of the last irrigation before making a water decision.",
   "water.check.growth_stage":
     "Confirm the wheat growth stage by looking at the plants if it is not recorded.",
   "water.check.unavailable":
     "Confirm wheat crop and select a supported Bahawalpur pilot area before reassessment.",
+  "water.check.dry":
+    "Confirm dryness at root depth in several places; surface dryness alone is not enough.",
+  "water.check.monitor":
+    "Continue checking root-zone moisture and drainage; field observation remains primary.",
+  "water.check.forecast_context":
+    "Forecast is context only; it does not confirm root-zone recharge.",
+  "water.check.soil_texture":
+    "Note the soil texture you can identify (sandy, loamy or clayey) for the record.",
 } as const;
 
 export type BackendTextKey = keyof typeof backendEn;
@@ -264,6 +436,12 @@ export const backendUr: Record<BackendTextKey, string> = {
     "جانچ کے بعد آپ نے کیا دیکھا وہ لکھیں؛ اگر علامات پھیلیں، غیر واضح رہیں یا شدید لگیں تو محلی زرعہ افسر سے ان کا جائزہ لیں۔",
   "plan.fallback_check":
     "بتائیں پودے کا کون سا حصہ مختلف لگ رہا ہے اور کئی پودوں کا موازنہ صحت مند لگنے والے علاقے سے کریں۔",
+  "plan.how.escalation":
+    "جو آپ نے درج کیا ہے وہ محلی زرعہ افسر یا مستند ماہر کو دکھائیں اور ان کی رہنمائی پر عمل کریں۔",
+  "plan.escalation.fallback":
+    "ان نشانوں کا عمل سے پہلے محلی زرعہ افسر یا مستند ماہر سے جائزہ لیں۔",
+  "plan.check.vision_cross":
+    "تصویر میں دکھائے گئے پودے اور قریب کے دوسرے پودوں کے کئی پتے دیکھیں، جن میں پتے کی دونوں طرفیں بھی شامل ہیں، اور داغ، پیلا پن، زنگ جیسے نشانے یا کیڑے دیکھیں۔",
 
   /* ---------------------------------------------------------- conflicts */
   "conflict.wet_soil": "کسان نے گیلی مٹی یا نکاسی کا پیش آمد بتائی ہے",
@@ -325,6 +503,123 @@ export const backendUr: Record<BackendTextKey, string> = {
     "ذاتی ماڈل کو crop_detected='wheat' لوٹانا ہوگا؛ غیر موجود یا غیر موزوں جواب پر انہدار ہوتا ہے۔",
   "vision.reason.unsafe_text":
     "ماڈل کے جواب میں غیر موزوں تشخیصی یا عمل کا لفظ تھا اس لیے مسترد کر دیا گیا۔",
+
+  /* ------------------------------ vision: photo screening report strings */
+  "vision.report.retake":
+    "دن کی روشنی میں ایک متاثر پتے کی واضح قریب کی تصویر لیں، جس میں پتہ زیادہ تر فریم بھرے۔",
+  "vision.report.visible.leaf_even": "پتے کی سطح کا رنگ عموماً یکساں لگتا ہے۔",
+  "vision.report.visible.no_rust":
+    "اس تصویر میں زنگ جیسے اُٹھے ہوئے نشانوں کی واضح علامت نظر نہیں آتی۔",
+  "vision.report.visible.no_spots":
+    "اس تصویر میں بڑے الگ دھبے واضح طور پر نظر نہیں آتے۔",
+  "vision.report.interp.healthy":
+    "اس تصویر میں کوئی واضح ظاہر خطرے کی نشانی نظر نہیں آتی۔ اکیلی تصویر کھیت کے دوسرے حصوں کے مسائل کو ختم نہیں کر سکتی۔",
+  "vision.report.checks.both_sides":
+    "اس علاقے میں کئی پتوں کی دونوں طرفیں دیکھیں اور کوئی نشانہ یا دھبہ ہے یا نہیں دیکھیں۔",
+  "vision.report.checks.compare_plants":
+    "اس پودے کا موازنہ اسی کھیت کے چند قریبی پودوں سے کریں۔",
+  "vision.report.visible.rust_marks":
+    "پتے کی سطح پر بکھرے ہوئے نارنجی بھورے گول نشانے نظر آ رہے ہیں۔",
+  "vision.report.not_visible.cause": "ان نشانوں کی وجہ تصویر میں نہیں دیکھی جا سکتی۔",
+  "vision.report.interp.rust":
+    "زنگ جیسی ظاہری علامات موجود ہو سکتی ہیں۔ صرف تصویر سے وجہ کی تصدیق نہیں ہوتی۔",
+  "vision.report.checks.rust_1":
+    "5–10 متاثر پتوں کی دونوں طرفیں دیکھیں اور اُٹھے ہوئے نارنجی، پیلے یا بھورے نشانے ہیں یا نہیں دیکھیں۔",
+  "vision.report.checks.rust_2":
+    "متاثر پودوں کا موازنہ قریب کے صحت مند لگنے والے پودوں سے کریں۔",
+  "vision.report.checks.rust_3": "چیک کریں کہ نئے پتے متاثر ہو رہے ہیں یا نہیں۔",
+  "vision.report.expert.spread": "نشانے تیزی سے پھیلتے ہیں",
+  "vision.report.expert.new_leaves": "نئے پتے متاثر ہو رہے ہیں",
+  "vision.report.expert.larger_area": "کھیت کا بڑا حصہ متاثر ہے",
+  "vision.report.interp.unclear":
+    "تصویر کا معیار کافی تھا، لیکن ظاہری نشانہ اس اسکریننگ ماڈل سے درست نہیں ہو سکا۔",
+  "vision.report.interp.unclassified":
+    "تصویر کا معیار کافی تھا، لیکن تصویر پر جو ظاہری نشانہ سامنے آیا وہ اس اسکریننگ کی صحت مند یا زنگ جیسی نشانیوں میں سے نہیں ہے۔",
+  "vision.report.visible.leaf_seen": "تصویر میں پودے کا پتہ نظر آ رہا ہے۔",
+  "vision.report.not_visible.unknown_sign":
+    "اس اسکریننگ سے یہ نہیں بتایا جا سکا کہ کون سی ظاہری نشانی موجود ہے۔",
+  "vision.report.interp.limited":
+    "اس تصویر پر ابتدائی ظاہری علامات کی اسکریننگ پھر بھی کی گئی۔ چونکہ تصویر کا معیار محدود ہے، یہ تصویر ظاہری علامات کو ختم نہیں کر سکتی۔",
+  "vision.report.not_visible.elsewhere":
+    "اکیلی تصویر کھیت کے دوسرے حصوں کی حالت نہیں دکھا سکتی۔",
+  "vision.report.interp.blocked":
+    "کوئی اپ لوڈ کی گئی تصویر فوٹو کوالٹی چیک پاس نہیں ہوئی، اس لیے کوئی ظاہری علامات کی اسکریننگ نہیں ہوئی۔",
+  "vision.report.not_visible.nothing":
+    "کوئی تصویر جانچنے کے لیے دستیاب نہیں تھی، اس لیے کچھ بھی جانچا نہیں گیا۔",
+  "vision.quality.too_large":
+    "فوٹو فائل بہت بڑی ہے۔ براہِ کرم 10 MB سے کم کی تصویر بھیجیں۔",
+  "vision.quality.bad_file":
+    "یہ فائل فوٹو کے طور پر کھولی نہیں جا سکی۔ براہِ کرم JPG یا PNG بھیجیں۔",
+  "vision.quality.low_resolution":
+    "تصویر بہت چھوٹی ہے۔ براہِ کرم عام کیمرے سے مکمل معیار پر لیں۔",
+  "vision.quality.blurry":
+    "تصویر دھندلی ہے۔ فون مضبوط پکڑیں اور فوکس کے لیے پتے پر ٹیپ کریں۔",
+  "vision.quality.too_dark": "تصویر بہت اندھیری ہے۔ براہِ کرم دن کی روشنی میں لیں۔",
+  "vision.quality.too_bright":
+    "تصویر بہت روشن ہے یا اس میں چمک ہے۔ کیمرے پر براہِ کرم براہِ راست دھوپ نہ پڑنے دیں۔",
+  "vision.quality.no_plant":
+    "کوئی فصل نظر نہیں آ رہی۔ قریب آئیں تاکہ پتے تصویر کا زیادہ تر حصہ بھریں۔",
+  "vision.quality.image_unreadable":
+    "یہ تصویر پڑھی نہیں جا سکی۔ براہِ کرم JPG یا PNG تصویر بھیجیں۔",
+  "vision.quality.no_image_supplied":
+    "کوئی تصویر فراہم نہیں کی گئی، اس لیے کچھ بھی جانچا نہیں جا سکا۔",
+
+  /* --------------- vision: plant part / screening scope (leaf vs ear) */
+  "vision.scope.leaf_fill":
+    "یہ قریبی تصویر ہے جس میں پتے بھرے ہوئے ہیں، اس لیے پتے کی علامات کی اسکریننگ لاگو ہوتی ہے۔",
+  "vision.scope.ear_straw":
+    "تصویر میں سنہری پتلی رنگ کے خوشے کی بافت بھری ہوئی ہے، اس لیے یہ تصویر پتا نہیں بلکہ گندم کا خوشہ ہے۔",
+  "vision.scope.ear_shape":
+    "تصویر میں قریبی پتے کے بجائے پس منظر کے مقابلے کھڑی گندم کی پودی نظر آ رہی ہے، اس لیے یہ پتا نہیں بلکہ خوشہ ہے۔",
+  "vision.scope.ear_ripe":
+    "یہ صاف قریبی تصویر ہے جس میں پتوں کے بجائے پکی ہوئی گندم کے خوشوں کا سنہری رنگ بھرا ہوا ہے، اس لیے یہ پتا نہیں بلکہ گندم کا خوشہ ہے۔",
+  "vision.scope.field_sky":
+    "تصویر میں افق اور کھلا آسمان نظر آ رہا ہے، اس لیے یہ قریبی پتے کے بجائے کھیت کا وسیع نظارہ ہے۔",
+  "vision.scope.field_patches":
+    "فصل ایک قریبی تصویر کے بجائے بکھرے ہوئے چھوٹے حصوں میں نظر آ رہی ہے، اس لیے یہ کھیت کا وسیع نظارہ ہے۔",
+  "vision.scope.not_leaf":
+    "تصویر میں پتے نہیں بھرے ہوئے، اس لیے پتے کی علامات کی اسکریننگ لاگو نہیں کی گئی۔",
+  "vision.scope.other_plant":
+    "تصویر میں پودے کا حصہ نظر آ رہا ہے، لیکن یہ گندم کے پتے کی قریبی تصویر نہیں ہے۔",
+  "vision.scope.no_wheat":
+    "اس تصویر سے گندم پہچانا نہیں جا سکا، اس لیے گندم کے پتے کی اسکریننگ لاگو نہیں کی گئی۔",
+  "vision.scope.subject_unclear":
+    "تصویر میں پودے کا حصہ پہچاننے کے لیے تفصیلات کافی نہیں ہیں۔",
+  "vision.scope.mixed":
+    "تصویریں ایک ہی چیز نہیں دکھاتیں؛ ایک متاثر پتے کی صاف قریبی تصویر درکار ہے۔",
+  "vision.scope.quality_failed":
+    "کسی تصویر نے معیار کی جانچ مکمل نہیں کی، اس لیے تصویر کا حصہ پہچانا نہیں جا سکا۔",
+  "vision.scope.no_photo":
+    "کوئی تصویر فراہم نہیں کی گئی، اس لیے تصویر کا حصہ پہچانا نہیں جا سکا۔",
+  "vision.report.not_visible.scope": "اس تصویر سے پتے کی علامات کا جائزہ نہیں لیا جا سکتا۔",
+  "vision.report.checks.scope":
+    "اس پودے اور قریب کے چند پودوں کے پتے کسی بھی نشان یا داغ کے لیے دیکھیں۔",
+  "vision.report.retake.scope":
+    "دن کی روشنی میں ایک متاثر پتے کی صاف قریبی تصویر لیں، جس میں پتا زیادہ تر فریم بھرے۔",
+  "vision.report.visible.ear": "اس تصویر میں پکی ہوئی گندم کا خوشہ نظر آ رہا ہے۔",
+  "vision.report.not_visible.ear":
+    "چونکہ اس تصویر میں قریبی پتا نہیں ہے، اس لیے پتے کی علامات کا جائزہ نہیں لیا جا سکتا۔",
+  "vision.report.interp.ear":
+    "یہ پکے گندم کے خوشے کی صاف تصویر ہے، پتے کی نہیں۔",
+  "vision.report.visible.field": "اس تصویر میں پورے کھیت میں فصل کا نظارہ نظر آ رہا ہے۔",
+  "vision.report.interp.field":
+    "یہ تصویر صاف ہے، لیکن یہ فصل کو دور سے دکھاتی ہے۔ پورے کھیت یا دور کی تصویر سے پتے کی علامات کا جائزہ نہیں لیا جا سکتا۔",
+  "vision.report.visible.other_plant":
+    "تصویر میں پودے کا حصہ نظر آ رہا ہے، لیکن یہ گندم کے پتے کی قریبی تصویر نہیں ہے۔",
+  "vision.report.interp.other_plant":
+    "یہ تصویر گندم کے پتے کی قریبی تصویر نہیں دکھاتی، اس لیے پتے کی علامات کی اسکریننگ لاگو نہیں کی گئی۔",
+  "vision.report.visible.subject_unclear":
+    "اس تصویر میں نظر آنے والا حصہ واضح طور پر پہچانا نہیں جا سکا۔",
+  "vision.report.interp.subject_unclear":
+    "تصویر میں نظر آنے والا حصہ پہچانا نہیں جا سکا، اس لیے پتے کی علامات کی اسکریننگ لاگو نہیں کی گئی۔",
+  "vision.report.interp.scope_limited":
+    "تصویر کا معیار محدود ہے اور یہ اسکریننگ قریبی پتے کی علامات کے لیے بنی ہے، اس لیے اس تصویر سے پتے کی علامات کا جائزہ نہیں لیا گیا۔",
+  "vision.report.obs.ear":
+    "تصویر میں گندم کا خوشہ نظر آ رہا ہے؛ پتے کی علامات کی اسکریننگ لاگو نہیں کی گئی۔",
+  "vision.report.obs.field":
+    "تصویر میں فصل دور سے نظر آ رہی ہے؛ ایک متاثر پتے کی قریبی تصویر درکار ہے۔",
+  "vision.report.obs.other_plant":
+    "تصویر میں پودے کا حصہ نظر آ رہا ہے، لیکن یہ گندم کے پتے کی قریبی تصویر نہیں ہے۔",
 
   /* ----------------------------------------------------- weather / crop */
   "weather.summary.context":
@@ -404,9 +699,9 @@ export const backendUr: Record<BackendTextKey, string> = {
   "crop.check.older_younger":
     "پرانے اور نئے پتوں کا موازنہ کریں اور نوٹ کریں کہ تبدیلی پرانے پتوں سے شروع ہوتی ہے یا نئے پتوں سے۔",
   "crop.check.uniform_patchy":
-    "چیک کریں کہ یہ نمونہ پورے کھیت میں یکساں ہے یا ٹوٹا ہوا، اور متاثر جگہ اور صحت مند لگنے والی جگہ پر جڑ کی مٹی ہاتھ سے دبائیں۔",
+    "چیک کریں کہ یہ نمونہ پورے کھیت میں یکساں ہے یا ٹوٹا ہوا۔",
   "crop.check.both_sides":
-    "کئی متاثر پتوں کی دونوں طرفیں دیکھیں: داغوں یا پھوڑوں کا رنگ، وہ پتے کہاں بیٹھے ہیں، اور قریب کے صحت مند لگنے والے پودے متاثر ہیں یا نہیں۔",
+    "کئی متاثر پتوں کی دونوں طرفیں دیکھیں: داغوں کی شکل اور رنگ، وہ پتے کہاں بیٹھے ہیں، اور پتے کی دونوں سطحیں متاثر ہیں یا نہیں۔",
   "crop.check.rolling_wilting":
     "نوٹ کریں کہ پتے لپٹ رہے ہیں یا پودے مرجھا رہے ہیں، اور کیا وہ رات کو واپس ٹھیک ہوتے ہیں۔",
   "crop.check.insects":
@@ -421,14 +716,59 @@ export const backendUr: Record<BackendTextKey, string> = {
     "بتائیں پودے کا کون سا حصہ مختلف لگ رہا ہے اور نمونہ یکساں ہے یا ٹوٹا ہوا۔",
   "crop.check.compare_healthy":
     "کئی متاثر پودوں کا موازنہ صحت مند لگنے والے علاقے سے کریں۔",
+  "crop.check.root_zone":
+    "کسی وجہ کا فیصلہ کرنے سے پہلے جڑ کے علاقے کی مٹی کی نمی، نکاسی اور جڑیں دیکھیں۔",
+  "crop.check.compare_dry":
+    "کئی جگہوں پر خشک پودوں کا موازنہ صحت مند لگنے والے پودوں سے کریں۔",
+  "crop.check.dry_origin":
+    "درج کریں کہ خشک ہونا پتے کی نکوں سے شروع ہوتا ہے، کناروں سے، یا پورے پتے سے۔",
+  "crop.check.patches":
+    "کئی جگہوں پر متاثر اور غیر متاثر علاقوں کا موازنہ کریں۔",
+  "crop.check.rust_1":
+    "کئی متاثر پتوں کی دونوں طرفیں دیکھیں اور درج کریں کہ نمایاں نارنجی، پیلے یا بھورے نشانے اُٹھے ہوئے ہیں یا نہیں۔",
+  "crop.check.rust_2":
+    "متاثر پودوں کا موازنہ قریب کے صحت مند لگنے والے پودوں سے کریں اور نوٹ کریں کہ نشانے بکھرے ہیں یا قطاروں میں ہیں۔",
+  "crop.check.rust_3": "چیک کریں کہ نئے پتے متاثر ہو رہے ہیں یا نہیں۔",
+  "crop.check.photo_discrepancy":
+    "اپ لوڈ کی گئی تصویر میں واضح علامات نظر نہیں آئیں، جبکہ کسان نے علامات بتائیں۔ متاثر پودوں کی کئی جگہوں پر جانچ کریں؛ تصویر کھیت کے کسی مسئلے کو منتفی نہیں کرتی۔",
+  "crop.check.photo_limit":
+    "اپ لوڈ کی گئی تصویر میں پڑھنے لائق تفصیلات نہیں تھیں، اس لیے اس سے کوئی واضح نشانہ نہیں پڑھا گیا؛ یہ صرف تصویر کے شواہدات تک محدود ہے اور کھیت کے بارے میں کچھ نہیں بتاتا۔",
+  "crop.photo.ear_scope":
+    "تصویر میں گندم کا خوشہ نظر آ رہا ہے۔ اس تصویر میں اسکریننگ کے لیے پتے کی علامات نہیں ہیں۔",
   "crop.check.referral":
-    "عمل سے پہلے پھیلنے والی، زنگ جیسی، شدید یا غیر واضح علامات اور کسی بھی علاج کے سوال کا محلی زرعہ افسر یا مستند ماہر سے جائزہ لیں۔",
+    "عمل سے پہلے پھیلنے والی، زنگ جیسی، شدید یا غیر واضح علامات کا محلی زرعہ افسر یا مستند ماہر سے جائزہ لیں۔",
+
+  /* ------------------------------------------ crop: screening possibilities */
+  "crop.poss.water_stress": "پانی کی ممکنہ کمی",
+  "crop.poss.nutrient_stress": "غذائیت کی ممکنہ کمی",
+  "crop.poss.premature_drying": "وقت سے پہلے خشک ہونا؛ متعدد وجوہات ممکن ہیں",
+  "crop.poss.rust_symptoms": "زنگ جیسے نشانے",
+  "crop.poss.leaf_spots": "پتے پر داغ یا کسی بیماری کی ممکنہ علامت",
+  "crop.poss.insect_damage": "کیڑوں کا ممکنہ نقصان",
+  "crop.poss.rust":
+    "زنگ جیسے پتے کے نشانوں کی کھیت میں جانچ درکار ہے؛ وجہ تصدیق شدہ نہیں۔",
+  "crop.poss.no_distinction": "دستیاب شواہدات کسی ایک وجہ کو الگ نہیں کرتے",
+  "crop.poss.cannot_assess": "دی گئی معلومات سے وجہ کا اندازہ نہیں لگایا جا سکتا",
+
+  /* --------------------------------------------------- crop: escalation signs */
+  "crop.escalation.rust":
+    "اگر نشانے تیزی سے پھیلیں، نئے پتوں پر آئیں یا کھیت کے بڑے حصے کو متاثر کریں تو مقامی ماہر سے جائزہ لیں۔",
+  "crop.escalation.spreading":
+    "اگر متاثر علاقہ تیزی سے پھیلتا رہے یا نئے پودے متاثر ہوں تو مقامی ماہر سے جائزہ لیں۔",
+  "crop.escalation.conflict":
+    "ایسے نشانات جو ایک دوسرے سے مطابقت نہیں رکھتے، ان کا عمل سے پہلے محلی زرعہ افسر سے جائزہ لیں۔",
+  "crop.escalation.stage":
+    "گندم کے پھول اور دانہ بنتے مرحلوں پر دی گئی علامات کا محلی زرعہ افسر سے جائزہ لیں۔",
+  "crop.escalation.chemical":
+    "کسی بھی پروڈکٹ یا انپٹ کے سوال کا جواب عمل سے پہلے محلی زرعہ افسر سے لیں۔",
+  "crop.escalation.unclear":
+    "غیر واضح یا شدید لگنے والے نشانات کا عمل سے پہلے محلی زرعہ افسر سے جائزہ لیں۔",
 
   /* ------------------------------------------------ water: field checks */
   "water.check.soil_moisture":
-    "کئی نمایاں جگہوں پر جڑ کی گہرائی تک مٹی کی نمی ہاتھ سے چیک کریں اور متاثر اور صحت مند لگنے والے علاقوں کا موازنہ کریں۔",
+    "جڑ کے علاقے کی مٹی کو 3–5 نمایاں جگہوں پر ہاتھ سے دیکھیں؛ متاثر اور صحت مند لگنے والے علاقوں کا موازنہ کریں۔",
   "water.check.drainage_paths":
-    "نیچی جگہوں اور نکاسی کے راستے دیکھیں؛ مستقل پانی جمع ہونے یا غیر یقینی حالت پر مقامی تعلیمی عملے سے جائزہ لیں۔",
+    "کھڑے پانی، بند نکاسی کے نکاس، اور آبپاشی یا بارش کے بعد مٹی میں نمی باقی ہے یا نہیں، دیکھیں۔",
   "water.check.after_rain":
     "بارش واقعی ہونے کے بعد جڑ کی مٹی کی نمی دوبارہ چیک کریں؛ پیشگوئی کو پانی بھرنے کا ثبوت نہ سمجھیں۔",
   "water.check.pmd_update":
@@ -436,11 +776,19 @@ export const backendUr: Record<BackendTextKey, string> = {
   "water.check.confirm_stage":
     "مقامی طور پر کھیت کا مرحلہ اور آبپاشی کی تاریخ کی تصدیق کریں؛ ان سے کوئی وقت یا مقدار نہیں نکالی جاتی۔",
   "water.check.last_irrigation":
-    "اپنی یاد سے آخری آبپاشی کی تقریبی تاریخ لکھیں تاکہ ریکارڈ میں پانی کب لگایا گیا وہ دکھے۔",
+    "پانی کے بارے میں فیصلے سے پہلے آخری آبپاشی کی تقریبی تاریخ درج کریں۔",
   "water.check.growth_stage":
     "اگر گندم کا نمو کا مرحلہ درج نہیں ہے تو پودوں کو دیکھ کر مرحلہ درست کریں۔",
   "water.check.unavailable":
     "دوبارہ جانچ سے پہلے گندم کی فصل کی تصدیق کریں اور بہاولپور پائلٹ کا کوئی موزوں علاقہ منتخب کریں۔",
+  "water.check.dry":
+    "کئی جگہوں پر جڑ کی گہرائی تک خشکی کی تصدیق کریں؛ صرف سطحی خشکی کافی نہیں۔",
+  "water.check.monitor":
+    "جڑ کے علاقے کی نمی اور نکاسی جانچتے رہیں؛ کھیت کی نگرانی ہی بنیاد ہے۔",
+  "water.check.forecast_context":
+    "پیشگویی صرف سیاق ہے؛ یہ جڑ کی مٹی میں پانی بھرنے کی تصدیق نہیں کرتی۔",
+  "water.check.soil_texture":
+    "ریکارڈ کے لیے وہ مٹی کی قسم درج کریں جو آپ پہچان سکتے ہیں (ریتلی، دو رتی یا چکنی)۔",
 };
 
 /* --------------------------------------------------------------- prefixes */
