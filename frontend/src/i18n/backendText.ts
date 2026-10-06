@@ -118,6 +118,14 @@ export const backendEn = {
     "Weather data is unavailable; other assessment agents continue without weather-driven rules.",
   "weather.obs.no_values":
     "Provider response contained no current values that passed validation.",
+  "weather.obs.no_rain_24h":
+    "No meaningful precipitation is currently forecast in the next 24 hours; confirm field moisture before any water decision.",
+  "weather.obs.rain_24h":
+    "Precipitation is forecast, but it does not confirm effective root-zone recharge.",
+  "weather.obs.grid_context":
+    "Forecast values are grid context, not measurements from this field.",
+  "weather.obs.no_24h_series":
+    "The provider returned no next-24-hour precipitation series, so no rainfall statement is made.",
   "crop.summary.unsupported":
     "The Crop Agent supports wheat only; no crop assessment was made for this crop.",
   "crop.check.unsupported":
@@ -142,6 +150,29 @@ export const backendEn = {
     "Farmer reported this quote; KisanOS did not retrieve or verify it.",
   "market.reason.no_quote":
     "No market quote was retrieved or provided; no price is inferred.",
+
+  /* ------------------------------------- official AMIS (Punjab) results */
+  "market.summary.amis_missing_bahawalpur":
+    "Price unavailable: No verified Bahawalpur wheat quote was returned by AMIS today.",
+  "market.summary.amis_unreachable":
+    "Price unavailable: the official AMIS price page could not be reached, so no verified quote is available today.",
+  "market.summary.amis_unusable":
+    "Price unavailable: AMIS did not return a usable wheat quote today.",
+  "market.obs.amis_retrieved":
+    "Retrieved from Punjab AMIS; KisanOS did not edit, estimate, or infer any price.",
+  "market.obs.amis_stale":
+    "The AMIS source date is older than 24 hours, so this quote is not labelled as current.",
+  "market.obs.amis_no_date": "AMIS returned no source date for this quote.",
+  "market.obs.amis_only_farmer":
+    "Punjab AMIS did not return a usable quote today, so only the farmer-entered quote is shown.",
+  "market.reason.amis_fresh":
+    "Source-reported quote from Punjab AMIS; freshness is derived from the AMIS source date and KisanOS did not alter, estimate, or infer any price.",
+  "market.reason.amis_stale":
+    "Punjab AMIS source date is older than 24 hours; the quote is shown as stale and is not presented as current.",
+  "market.reason.amis_no_date":
+    "Punjab AMIS returned no source date; the quote is shown as source-reported with the date unavailable, not as today's price.",
+  "market.check.amis_confirm":
+    "Confirm the unit and grade with the mandi before you compare this quote with another rate.",
 
   /* ------------------------------------- crop: farmer/photo observations */
   "crop.obs.yellowing": "visible yellowing reported by the farmer",
@@ -189,6 +220,10 @@ export const backendEn = {
     "Check the latest official PMD update and actual farm conditions; the stale or unavailable forecast is not used.",
   "water.check.confirm_stage":
     "Confirm stage and irrigation history locally; no timing or amount is calculated from these inputs.",
+  "water.check.last_irrigation":
+    "Write down the approximate date of the last irrigation you remember, so the record shows when water was last applied.",
+  "water.check.growth_stage":
+    "Confirm the wheat growth stage by looking at the plants if it is not recorded.",
   "water.check.unavailable":
     "Confirm wheat crop and select a supported Bahawalpur pilot area before reassessment.",
 } as const;
@@ -298,6 +333,14 @@ export const backendUr: Record<BackendTextKey, string> = {
     "موسمی ڈیٹا دستیاب نہیں؛ دوسرے ایجنٹ بغیر موسمی ااعدالے کے جاری رہتے ہیں۔",
   "weather.obs.no_values":
     "فراہمی کے جواب میں کوئی ایسا موجودہ عدد نہیں تھا جو تصدیق پاس کرے۔",
+  "weather.obs.no_rain_24h":
+    "اگلے 24 گھنٹے میں کوئی نمایاں بارش کی پیشگویی نہیں ہے؛ کسی بھی پانی کے فیصلے سے پہلے کھیت کی نمی کی تصدیق کریں۔",
+  "weather.obs.rain_24h":
+    "بارش کی پیشگویی ہے، لیکن یہ جڑ کی نمی بھرنے کی تصدیق نہیں کرتی۔",
+  "weather.obs.grid_context":
+    "پیشگویی کی قدریں گرڈ کا سیاق ہیں، اس کھیت کی پیمائش نہیں۔",
+  "weather.obs.no_24h_series":
+    "پرووائیڈر نے اگلے 24 گھنٹے کی سیریز واپس نہیں کی، اس لیے بارش کا کوئی بیان نہیں کیا گیا۔",
   "crop.summary.unsupported":
     "فصل ایجنٹ صرف گندم کے لیے ہے؛ اس فصل کا کوئی جائزہ نہیں ہوا۔",
   "crop.check.unsupported":
@@ -322,6 +365,29 @@ export const backendUr: Record<BackendTextKey, string> = {
     "کسان نے یہ قیمت بتائی ہے؛ KisanOS نے اسے حاصل یا تصدیق نہیں کیا۔",
   "market.reason.no_quote":
     "کوئی مارکیٹ قیمت حاصل یا فراہم نہیں ہوئی؛ کوئی قیمت نہیں نکالی گئی۔",
+
+  /* ------------------------------------- official AMIS (Punjab) results */
+  "market.summary.amis_missing_bahawalpur":
+    "قیمت دستیاب نہیں: آج AMIS کی جانب سے بہاولپور کی تصدیق شدہ گندم کی قیمت واپس نہیں کی گئی۔",
+  "market.summary.amis_unreachable":
+    "قیمت دستیاب نہیں: سرکاری AMIS قیمت کا صفحہ دستیاب نہیں ہوا، اس لیے آج کوئی تصدیق شدہ قیمت موجود نہیں ہے۔",
+  "market.summary.amis_unusable":
+    "قیمت دستیاب نہیں: AMIS نے آج قابل استعمال گندم کی قیمت فراہم نہیں کی۔",
+  "market.obs.amis_retrieved":
+    "پنجاب AMIS سے حاصل کیا گیا؛ KisanOS نے کوئی قیمت نہیں بدلی، نہ اندازہ لگایا اور نہ کوئی قیمت بنائی۔",
+  "market.obs.amis_stale":
+    "AMIS کی قیمت کی تاریخ ۲۴ گھنٹے سے پرانی ہے، اس لیے اسے موجودہ قیمت نہیں کہا جا رہا۔",
+  "market.obs.amis_no_date": "AMIS نے اس قیمت کی تاریخ فراہم نہیں کی۔",
+  "market.obs.amis_only_farmer":
+    "آج پنجاب AMIS سے قابل استعمال قیمت نہیں ملی، اس لیے صرف کسان کی درج کردہ قیمت دکھائی جا رہی ہے۔",
+  "market.reason.amis_fresh":
+    "یہ پنجاب AMIS کی جانب سے بتائی ہوئی قیمت ہے؛ تازگی AMIS کی قیمت کی تاریخ پر مبنی ہے، اور KisanOS نے کوئی قیمت نہیں بدلی یا بنائی۔",
+  "market.reason.amis_stale":
+    "پنجاب AMIS کی قیمت کی تاریخ ۲۴ گھنٹے سے پرانی ہے؛ یہ قیمت پرانی ہے اور موجودہ قیمت کے طور پر پیش نہیں کی جا رہی۔",
+  "market.reason.amis_no_date":
+    "پنجاب AMIS نے قیمت کی تاریخ فراہم نہیں کی؛ یہ قیمت ذریعے کی طرف سے بتائی ہوئی ہے اور اس کی تاریخ دستیاب نہیں، آج کی قیمت نہیں۔",
+  "market.check.amis_confirm":
+    "دوسرے ریٹ سے موازنہ کرنے سے پہلے منڈی سے اکائی اور قسم کی تصدیق کریں۔",
 
   /* ------------------------------------- crop: farmer/photo observations */
   "crop.obs.yellowing": "کسان نے پیلہ پن دیکھا ہے",
@@ -369,6 +435,10 @@ export const backendUr: Record<BackendTextKey, string> = {
     "PMD کا تازہ ترین سرکاری اپڈیٹ اور کھیت کی حقیقی حالت دیکھیں؛ پرانا یا دستیاب نہ ہونے والے پیشگویی کا ڈیٹا استعمال نہیں ہوتا۔",
   "water.check.confirm_stage":
     "مقامی طور پر کھیت کا مرحلہ اور آبپاشی کی تاریخ کی تصدیق کریں؛ ان سے کوئی وقت یا مقدار نہیں نکالی جاتی۔",
+  "water.check.last_irrigation":
+    "اپنی یاد سے آخری آبپاشی کی تقریبی تاریخ لکھیں تاکہ ریکارڈ میں پانی کب لگایا گیا وہ دکھے۔",
+  "water.check.growth_stage":
+    "اگر گندم کا نمو کا مرحلہ درج نہیں ہے تو پودوں کو دیکھ کر مرحلہ درست کریں۔",
   "water.check.unavailable":
     "دوبارہ جانچ سے پہلے گندم کی فصل کی تصدیق کریں اور بہاولپور پائلٹ کا کوئی موزوں علاقہ منتخب کریں۔",
 };
@@ -392,6 +462,10 @@ export const backendPrefixEn = {
   "conflict.crop_evidence": "Crop Agent evidence",
   "conflict.vision_signs": "Vision Agent visible signs",
   "market.summary.price_unavailable": "Price unavailable",
+  "market.summary.amis_price": "AMIS wheat price",
+  "market.obs.source_date": "Source date",
+  "market.obs.retrieved_at": "Retrieved at",
+  "market.obs.source_url": "Source URL",
   "crop.obs.photo_visible": "Photo visible",
 } as const;
 
@@ -410,6 +484,10 @@ export const backendPrefixUr: Record<BackendPrefixKey, string> = {
   "conflict.crop_evidence": "فصل ایجنٹ کا ثبوت",
   "conflict.vision_signs": "وژن ایجنٹ کی ظاہر نشانیاں",
   "market.summary.price_unavailable": "قیمت دستیاب نہیں",
+  "market.summary.amis_price": "AMIS گندم کی قیمت",
+  "market.obs.source_date": "قیمت کی تاریخ",
+  "market.obs.retrieved_at": "وصول کیا گیا",
+  "market.obs.source_url": "ذریعے کا لنک",
   "crop.obs.photo_visible": "تصویر میں نظر آیا",
 };
 

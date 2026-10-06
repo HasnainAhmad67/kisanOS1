@@ -1,4 +1,6 @@
 import { BackendText } from "./BackendText";
+import { MarketQuote, isAmisQuote } from "./MarketQuote";
+import { FieldInformation, WeatherPanel, isWaterCardData, isWeatherCardData } from "./ResultPanels";
 import { StatusBadge } from "./StatusBadge";
 import { translate, useI18n, type Locale } from "../i18n";
 import type { AgentId, AgentResult } from "../types/backend";
@@ -64,6 +66,22 @@ export function AgentCard({ agentId, result }: AgentCardProps) {
           <p className="agent-card__summary">
             <BackendText text={result.summary} />
           </p>
+          {/* Structured provider values (Weather) and the field-completeness
+              report (Water) — rendered only for the matching backend shape. */}
+          {agentId === "weather" && isWeatherCardData(result.data) ? (
+            <WeatherPanel data={result.data} sources={result.sources} />
+          ) : null}
+          {agentId === "water" && isWaterCardData(result.data) ? (
+            <FieldInformation data={result.data} />
+          ) : null}
+          {/* Live mandi price: the localized unavailable notice, or the quote
+              panel when Punjab AMIS returned a verified row. */}
+          {agentId === "market" && result.status === "unavailable" ? (
+            <p className="market-notice">{t("market.unavailable")}</p>
+          ) : null}
+          {agentId === "market" && isAmisQuote(result.data.quote) ? (
+            <MarketQuote quote={result.data.quote} />
+          ) : null}
           {agentId === "vision" && result.safety_flags.includes("low_quality_image") ? (
             <p className="vision-notice vision-notice--warn">
               <strong>⚠️ {t("vision.soft.title")}</strong>

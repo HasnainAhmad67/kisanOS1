@@ -248,6 +248,113 @@ export interface AgentResult {
   input_evidence: string[];
 }
 
+export type QuoteFreshness = "fresh" | "stale" | "unknown";
+/**
+ * Official Punjab AMIS quote in `data.quote` (Market Agent). Every field comes
+ * straight from the AMIS page: nothing is inferred, so `null` means the source
+ * did not report it and must never be rendered as 0 or as a default.
+ */
+export interface AmisQuote {
+  source: "AMIS";
+  source_url: string;
+  market: string;
+  market_reported_by_source: string;
+  commodity: string;
+  currency: string;
+  /** Exactly as the source states it (e.g. "Rs/100Kg"). */
+  unit: string;
+  min_price: number | null;
+  max_price: number | null;
+  average_price: number | null;
+  /** Start of the AMIS source day (PKT) — null when the page gave no date. */
+  quoted_at: string | null;
+  source_date: string | null;
+  retrieved_at: string;
+  evidence_band: "medium" | "low";
+  verification_status: "source_reported";
+  freshness: QuoteFreshness;
+}
+
+/* ------------------------------------------------ weather + water cards */
+
+/** `data.current` on the Weather card — provider values with explicit units. */
+export interface WeatherCurrent {
+  temperature_c: number | null;
+  relative_humidity_pct: number | null;
+  precipitation_mm: number | null;
+  wind_speed_kmh: number | null;
+  weather_code?: number | null;
+}
+
+/**
+ * `data.next_24h` on the Weather card. Values are aggregated from the
+ * provider's own hourly rows inside the window only; `null` means the series
+ * was absent, never a synthesized 0.
+ */
+export interface WeatherNext24h {
+  window_start: string | null;
+  window_end: string | null;
+  precipitation_total_mm: number | null;
+  precipitation_probability_max_pct: number | null;
+  hourly_samples?: number;
+  basis?: string;
+}
+
+/** Fixed plain-language forecast context emitted by the Weather adapter. */
+export interface WeatherForecastContext {
+  precipitation_expected_next_24h: boolean | null;
+  statements: string[];
+}
+
+/** `data` of the Weather card when the provider returned usable values. */
+export interface WeatherCardData {
+  provider?: string;
+  location_name: string;
+  location_granularity?: string;
+  timezone?: string;
+  provider_observation_at?: string | null;
+  retrieved_at?: string | null;
+  freshness?: string;
+  current?: WeatherCurrent | null;
+  next_24h?: WeatherNext24h | null;
+  forecast_context?: WeatherForecastContext;
+  daily_outlook?: unknown[];
+  [key: string]: unknown;
+}
+
+/** Per-input state on the Water card — unknown inputs stay unknown. */
+export type FieldInputState = "known" | "unknown";
+export type WeatherContextState = "fresh" | "stale" | "unavailable";
+
+export interface InputCompleteness {
+  growth_stage: FieldInputState;
+  irrigation_history: FieldInputState;
+  soil_texture: FieldInputState;
+  soil_moisture: FieldInputState;
+  drainage: FieldInputState;
+  weather_context: WeatherContextState;
+}
+
+export type WaterContextLabel =
+  | "field_check_needed"
+  | "watch_drainage"
+  | "forecast_context_only";
+
+/** `data` of the Water card, including the structured completeness report. */
+export interface WaterCardData {
+  water_attention?: string;
+  irrigation_command?: null;
+  input_completeness: InputCompleteness;
+  /** Machine keys of the inputs that are missing, in priority order. */
+  missing_inputs: string[];
+  water_context?: {
+    label?: WaterContextLabel;
+    status?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 /* --------------------------------------------------------------- farm plan */
 
 /** Backend `FarmCheck` (priority is constrained to 1..3). */
